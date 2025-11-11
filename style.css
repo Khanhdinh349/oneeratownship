@@ -4,25 +4,37 @@
 }
 
 body {
-  background: url('https://www.setiaedenia.com.vn/_nuxt/img/bg-header-01.95f1b9f.jpg') center/cover no-repeat;
-  backdrop-filter: blur(6px);
+  /* Đã cập nhật hình nền mới */
+  background: url('images/one-era-kinera-1536x675.jpg') center/cover fixed no-repeat;
+  backdrop-filter: blur(2.5px);
   display: flex;
   justify-content: center;
   padding: 40px;
+  min-height: 100vh;
 }
 
 .container {
   width: 90%;
   max-width: 850px;
-  background: rgba(255, 255, 255, 0.85);
+  /* Độ trong suốt được điều chỉnh */
+  background: rgba(255, 255, 255, 0.5); 
   border-radius: 12px;
   padding: 40px 50px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
 
 .header {
   text-align: center;
   color: #002b5c;
+  margin-bottom: 20px;
+}
+
+/* STYLE CHO LOGO */
+.logo {
+    max-width: 250px;
+    height: auto;
+    margin-bottom: 15px;
+    border-radius: 8px;
 }
 
 .header h1 {
@@ -89,11 +101,24 @@ input:focus, select:focus {
   background: #00337a;
 }
 
-#successMessage {
+.message {
   margin-top: 15px;
   text-align: center;
-  color: green;
   font-weight: 600;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+#successMessage {
+  color: green;
+  background-color: #e6ffe6;
+  border: 1px solid #00cc00;
+}
+
+#errorMessage {
+  color: #cc0000;
+  background-color: #ffe6e6;
+  border: 1px solid #cc0000;
 }
 
 .hidden {
