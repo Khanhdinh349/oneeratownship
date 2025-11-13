@@ -1,0 +1,79 @@
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: url("images/one-era-kinera-1536x675.jpg") center/cover fixed no-repeat;
+  backdrop-filter: blur(2px);
+  background-size: cover;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.form-container {
+  width: 100%;
+  max-width: 640px;
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: 40px 48px;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.logo-container {
+  margin-bottom: 20px;
+}
+
+.logo-container img {
+  max-width: 180px;
+  height: auto;
+}
+
+h2 {
+  margin-bottom: 24px;
+  color: #2c3e50;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #34495e;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.submit-btn {
+  width: 100%;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: #2980b9;
+}
