@@ -54,7 +54,7 @@ function translateForm(lang) {
   });
 
   const title = document.getElementById("form-title");
-  const submitBtn = document.getElementById("submitBtn");
+  const submitBtn = document.getElementById("goBtn");
   if (title && submitBtn) {
     const map = {
       doitac: { vi: "Đăng Ký Đối Tác", en: "Partner Registration" },
