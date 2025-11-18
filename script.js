@@ -73,7 +73,6 @@ function translateForm(lang) {
 function showSuccessAndRedirect(lang) {
   const successMessage = lang === "vi" ? "✅ Đăng ký thành công! Bạn sẽ được chuyển hướng." : "✅ Registration successful! You will be redirected.";
   
-  // Logic Confetti (nếu thư viện canvas-confetti.js được nhúng trong HTML)
   if (typeof confetti === 'function') {
     confetti({
       particleCount: 100,
@@ -82,24 +81,20 @@ function showSuccessAndRedirect(lang) {
     });
   } 
 
-  // Hiển thị thông báo thành công
   alert(successMessage);
   
-  // Chuyển hướng về trang index.html
   setTimeout(() => {
     window.location.href = `index.html?lang=${lang}`;
   }, 100); 
 }
 
-// === Thu thập dữ liệu form cụ thể (ĐÃ TỐI ƯU HÓA SỬ DỤNG THUỘC TÍNH NAME) ===
+// === Thu thập dữ liệu form cụ thể (Sử dụng thuộc tính NAME) ===
 function collectFormData(formId) {
     const data = {
-        // Ghi lại thời gian hiện tại theo múi giờ Việt Nam
         timestamp: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
     };
 
     // Định nghĩa ánh xạ, sử dụng thuộc tính 'name' để tìm kiếm phần tử và đặt key
-    // THỨ TỰ CỦA CÁC KHÓA NÀY PHẢI KHỚP CHÍNH XÁC VỚI THỨ TỰ CÁC CỘT TRONG APPS SCRIPT
     const fieldMap = {
         "form-doitac": [
             { selector: '[name="fullName"]', name: 'fullName' },
@@ -137,18 +132,18 @@ function collectFormData(formId) {
     if (!currentFormMap) return null;
 
     currentFormMap.forEach(field => {
-        // TÌM KIẾM PHẦN TỬ BẰNG THUỘC TÍNH NAME ĐÃ CẬP NHẬT TRONG HTML
+        // TÌM KIẾM PHẦN TỬ BẰNG THUỘC TÍNH NAME
         const element = document.querySelector(`#${formId} ${field.selector}`);
         if (element) {
             data[field.name] = element.value;
         }
     });
 
-    data.formType = formId.replace('form-', ''); // Thêm loại form (doitac, khach, daily)
+    data.formType = formId.replace('form-', ''); 
     return data;
 }
 
-// !!! ĐÃ THAY THẾ URL BẰNG URL BẠN CUNG CẤP !!!
+// !!! URL APPS SCRIPT ĐÃ ĐƯỢC THAY THẾ BẰNG URL BẠN CUNG CẤP !!!
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuDDY28hFBK6cBcnMnsAEhLTyn6-FrWkXoFf9dqnbM5ea7-xIaxY1E1m4CDQ3967hw/exec'; 
 
 async function sendDataToSheet(formData, lang) {
@@ -158,7 +153,7 @@ async function sendDataToSheet(formData, lang) {
             method: 'POST',
             mode: 'cors',
             headers: {
-                // Quan trọng: Sử dụng text/plain để Apps Script có thể đọc JSON
+                // BẮT BUỘC: Sử dụng text/plain
                 'Content-Type': 'text/plain;charset=utf-8' 
             },
             body: JSON.stringify(formData)
@@ -167,9 +162,8 @@ async function sendDataToSheet(formData, lang) {
         const result = await response.json();
 
         if (result.result === "success") {
-            showSuccessAndRedirect(lang); // Hiển thị chúc mừng và chuyển hướng
+            showSuccessAndRedirect(lang); 
         } else {
-            // Lỗi Apps Script sẽ hiển thị tại đây
             alert(`Lỗi khi ghi dữ liệu: ${result.message}`);
         }
     } catch (error) {
@@ -191,11 +185,9 @@ document.addEventListener("submit", (e) => {
     const lang = getLang();
     const formId = e.target.id; 
 
-    // 1. Thu thập dữ liệu
     const formData = collectFormData(formId);
 
     if (formData) {
-        // 2. Gửi dữ liệu đến Apps Script
         sendDataToSheet(formData, lang);
     } else {
         alert("Lỗi: Không tìm thấy form ID hợp lệ.");
