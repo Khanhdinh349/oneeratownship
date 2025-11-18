@@ -9,12 +9,21 @@ function setLang(lang) {
 }
 
 // === Trang chọn loại đăng ký (index.html) ===
+// Chỉ chạy logic này nếu phần tử goBtn tồn tại (tức là chỉ trên index.html)
 const goBtn = document.getElementById("goBtn");
 if (goBtn) {
   goBtn.addEventListener("click", () => {
-    const lang = document.getElementById("language").value;
-    const type = document.getElementById("userType").value;
-    if (!type) {
+    // Các phần tử #language và #userType chỉ có trên index.html
+    const lang = document.getElementById("language")?.value;
+    const type = document.getElementById("userType")?.value;
+    
+    // Kiểm tra null/undefined để tránh lỗi nếu code chạy nhầm chỗ
+    if (!lang || !type) {
+        alert("Lỗi: Không tìm thấy các trường chọn ngôn ngữ hoặc loại đăng ký.");
+        return;
+    }
+
+    if (type === "") {
       alert(lang === "vi" ? "Vui lòng chọn loại đăng ký" : "Please select a registration type");
       return;
     }
@@ -54,7 +63,10 @@ function translateForm(lang) {
   });
 
   const title = document.getElementById("form-title");
-  const submitBtn = document.getElementById("goBtn");
+  
+  // Dùng querySelector để tìm nút gửi trên mọi trang (index có id, form có class)
+  let submitBtn = document.getElementById("goBtn") || document.querySelector(".submit-btn");
+
   if (title && submitBtn) {
     const map = {
       doitac: { vi: "Đăng Ký Đối Tác", en: "Partner Registration" },
@@ -62,10 +74,15 @@ function translateForm(lang) {
       daily: { vi: "Đăng Ký Đại Lý", en: "Agency Registration" },
     };
     const page = window.location.pathname.split("/").pop().split(".")[0];
+    
+    // Chỉ cập nhật tiêu đề và nút gửi cho các trang form
     if (map[page]) {
       title.textContent = map[page][lang];
+      // Kiểm tra nếu nút có nội dung mặc định là "Gửi đăng ký" hoặc "Submit" thì mới dịch
+      if (submitBtn.textContent.includes("Gửi") || submitBtn.textContent.includes("Continue")) {
+          submitBtn.textContent = lang === "vi" ? "Gửi đăng ký" : "Submit";
+      }
     }
-    submitBtn.textContent = lang === "vi" ? "Gửi đăng ký" : "Submit";
   }
 }
 
@@ -94,7 +111,7 @@ function collectFormData(formId) {
         timestamp: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
     };
 
-    // Định nghĩa ánh xạ, sử dụng thuộc tính 'name' để tìm kiếm phần tử và đặt key
+    // Định nghĩa ánh xạ: [selector] và [name] phải khớp
     const fieldMap = {
         "form-doitac": [
             { selector: '[name="fullName"]', name: 'fullName' },
@@ -127,7 +144,6 @@ function collectFormData(formId) {
         ]
     };
     
-    // Lấy ID form hiện tại
     const currentFormMap = fieldMap[formId];
     if (!currentFormMap) return null;
 
@@ -163,6 +179,7 @@ async function sendDataToSheet(formData, lang) {
         if (result.result === "success") {
             showSuccessAndRedirect(lang); 
         } else {
+            // Hiển thị thông báo lỗi từ Apps Script
             alert(`Lỗi khi ghi dữ liệu: ${result.message}`);
         }
     } catch (error) {
@@ -179,10 +196,14 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 // === Submit form (Gửi dữ liệu) ===
+// Hàm này chỉ chạy khi form submit (trên các trang doitac, khach, daily)
 document.addEventListener("submit", (e) => {
     e.preventDefault();
     const lang = getLang();
     const formId = e.target.id; 
+
+    // Kiểm tra để tránh xử lý submit của các phần tử khác nếu có
+    if (!formId.startsWith('form-')) return;
 
     const formData = collectFormData(formId);
 
