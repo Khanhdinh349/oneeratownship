@@ -152,19 +152,13 @@ function showSuccessDialog(lang) {
   // Khởi tạo logic chuyển hướng và gán sự kiện cho nút Xác nhận
   const redirectToIndex = setupRedirect(lang, confirmBtn);
 
-  // Bộ đếm thời gian tự động chuyển hướng
-  countdownTimer = setInterval(() => {
-    countdown--;
-    const currentCountdownEl = document.getElementById("countdown");
-    if (currentCountdownEl) {
-        currentCountdownEl.textContent = countdown;
-    }
-    
-    if (countdown <= 0) {
-      redirectToIndex(); // Gọi hàm chuyển hướng
-    }
-  }, 1000);
-}
+            // Nếu request gửi đi không bị chặn, giả định Apps Script đã nhận.
+            console.log("Dữ liệu đã được gửi. Kiểm tra Google Sheet để xác nhận dữ liệu đã được ghi.");
+            
+            // Xử lý thành công
+            successMessage.classList.remove('hidden');
+            form.reset(); 
+            setTimeout(hideMessages, 5000);
 
 // ---
 
