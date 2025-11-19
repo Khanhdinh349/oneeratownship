@@ -128,11 +128,11 @@ function showSuccessDialog(lang) {
   // Dịch nội dung (ĐÃ CẬP NHẬT TIẾNG VIỆT & TIẾNG ANH VỚI <br/>)
   if (lang === "vi") {
     title.textContent = "✅ Đăng ký thành công!";
-    message.innerHTML = `Chào Mừng Đến Với One Era.<br/>Quay Lại Trang Đăng Ký Trong <span id="countdown">${countdown}</span> giây.`;
+    message.innerHTML = `Chào Mừng Đến Với One Era.`;
     confirmBtn.textContent = "Xác nhận";
   } else {
     title.textContent = "✅ Registration Successful!";
-    message.innerHTML = `Welcome to One Era.<br/>Returning to registration page in <span id="countdown">${countdown}</span> seconds.`;
+    message.innerHTML = `Welcome to One Era.`;
     confirmBtn.textContent = "Confirm";
   }
   
