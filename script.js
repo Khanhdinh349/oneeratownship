@@ -9,15 +9,12 @@ function setLang(lang) {
 }
 
 // === Trang chọn loại đăng ký (index.html) ===
-// Chỉ chạy logic này nếu phần tử goBtn tồn tại (tức là chỉ trên index.html)
 const goBtn = document.getElementById("goBtn");
 if (goBtn) {
   goBtn.addEventListener("click", () => {
-    // Các phần tử #language và #userType chỉ có trên index.html
     const lang = document.getElementById("language")?.value;
     const type = document.getElementById("userType")?.value;
     
-    // Kiểm tra null/undefined để tránh lỗi nếu code chạy nhầm chỗ
     if (!lang || !type) {
         alert("Lỗi: Không tìm thấy các trường chọn ngôn ngữ hoặc loại đăng ký.");
         return;
@@ -35,7 +32,7 @@ if (goBtn) {
 // === Tự động cập nhật giờ VN (UTC+7) ===
 function setVietnamTime() {
   const now = new Date();
-  const vietnamOffset = 7 * 60;
+  const vietnamOffset = 7 * 60; // UTC+7
   const localOffset = now.getTimezoneOffset();
   const vietnamTime = new Date(now.getTime() + (vietnamOffset + localOffset) * 60000);
 
@@ -63,8 +60,6 @@ function translateForm(lang) {
   });
 
   const title = document.getElementById("form-title");
-  
-  // Dùng querySelector để tìm nút gửi trên mọi trang (index có id, form có class)
   let submitBtn = document.getElementById("goBtn") || document.querySelector(".submit-btn");
 
   if (title && submitBtn) {
@@ -75,10 +70,8 @@ function translateForm(lang) {
     };
     const page = window.location.pathname.split("/").pop().split(".")[0];
     
-    // Chỉ cập nhật tiêu đề và nút gửi cho các trang form
     if (map[page]) {
       title.textContent = map[page][lang];
-      // Kiểm tra nếu nút có nội dung mặc định là "Gửi đăng ký" hoặc "Submit" thì mới dịch
       if (submitBtn.textContent.includes("Gửi") || submitBtn.textContent.includes("Continue")) {
           submitBtn.textContent = lang === "vi" ? "Gửi đăng ký" : "Submit";
       }
@@ -88,8 +81,12 @@ function translateForm(lang) {
 
 // === Hiển thị thông báo thành công và chuyển hướng ===
 function showSuccessAndRedirect(lang) {
-  const successMessage = lang === "vi" ? "✅ Đăng ký thành công! Bạn sẽ được chuyển hướng." : "✅ Registration successful! You will be redirected.";
+  // Đã sửa thông báo để phản ánh việc xử lý cục bộ
+  const successMessage = lang === "vi" ? 
+    "✅ Đăng ký thành công! Dữ liệu đã được xử lý cục bộ (kiểm tra console). Bạn sẽ được chuyển hướng." : 
+    "✅ Registration successful! Data was processed locally (check console). You will be redirected.";
   
+  // Confetti vẫn được giữ lại nếu thư viện confetti có sẵn
   if (typeof confetti === 'function') {
     confetti({
       particleCount: 100,
@@ -105,13 +102,12 @@ function showSuccessAndRedirect(lang) {
   }, 100); 
 }
 
-// === Thu thập dữ liệu form cụ thể (Sử dụng thuộc tính NAME) ===
+// === Thu thập dữ liệu form (Không thay đổi) ===
 function collectFormData(formId) {
     const data = {
         timestamp: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
     };
 
-    // Định nghĩa ánh xạ: [selector] và [name] phải khớp
     const fieldMap = {
         "form-doitac": [
             { selector: '[name="fullName"]', name: 'fullName' },
@@ -148,7 +144,6 @@ function collectFormData(formId) {
     if (!currentFormMap) return null;
 
     currentFormMap.forEach(field => {
-        // TÌM KIẾM PHẦN TỬ BẰNG THUỘC TÍNH NAME
         const element = document.querySelector(`#${formId} ${field.selector}`);
         if (element) {
             data[field.name] = element.value;
@@ -159,34 +154,6 @@ function collectFormData(formId) {
     return data;
 }
 
-// !!! URL APPS SCRIPT ĐÃ ĐƯỢC THAY THẾ BẰNG URL BẠN CUNG CẤP !!!
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuDDY28hFBK6cBcnMnsAEhLTyn6-FrWkXoFf9dqnbM5ea7-xIaxY1E1m4CDQ3967hw/exec'; 
-
-async function sendDataToSheet(formData, lang) {
-    
-    try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: {
-                'Content-Type': 'text/plain;charset=utf-8' 
-            },
-            body: JSON.stringify(formData)
-        });
-
-        const result = await response.json();
-
-        if (result.result === "success") {
-            showSuccessAndRedirect(lang); 
-        } else {
-            // Hiển thị thông báo lỗi từ Apps Script
-            alert(`Lỗi khi ghi dữ liệu: ${result.message}`);
-        }
-    } catch (error) {
-        alert(`Lỗi kết nối máy chủ: ${error.message}`);
-    }
-}
-
 
 // === Khi tải mỗi trang ===
 window.addEventListener("DOMContentLoaded", () => {
@@ -195,21 +162,24 @@ window.addEventListener("DOMContentLoaded", () => {
   translateForm(lang);
 });
 
-// === Submit form (Gửi dữ liệu) ===
-// Hàm này chỉ chạy khi form submit (trên các trang doitac, khach, daily)
+// === Submit form (Xử lý dữ liệu cục bộ) ===
+// Dữ liệu chỉ được thu thập và in ra console.
 document.addEventListener("submit", (e) => {
     e.preventDefault();
     const lang = getLang();
     const formId = e.target.id; 
 
-    // Kiểm tra để tránh xử lý submit của các phần tử khác nếu có
     if (!formId.startsWith('form-')) return;
 
     const formData = collectFormData(formId);
 
     if (formData) {
-        sendDataToSheet(formData, lang);
+        // Ghi dữ liệu vào Console để kiểm tra
+        console.log(`Dữ liệu form đã thu thập (${formId}):`, formData); 
+        
+        // Chỉ hiển thị thông báo thành công và chuyển hướng
+        showSuccessAndRedirect(lang);
     } else {
-        alert("Lỗi: Không tìm thấy form ID hợp lệ.");
+        alert(lang === "vi" ? "Lỗi: Không tìm thấy form ID hợp lệ." : "Error: No valid form ID found.");
     }
 });
