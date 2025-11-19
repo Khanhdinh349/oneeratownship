@@ -1,4 +1,5 @@
-// === 🧠 Ngôn ngữ ===
+// === 🧠 Quản lý Ngôn ngữ & Điều hướng Ban đầu ===
+
 function getLang() {
   const params = new URLSearchParams(window.location.search);
   return params.get("lang") || localStorage.getItem("lang") || "vi";
@@ -8,7 +9,7 @@ function setLang(lang) {
   localStorage.setItem("lang", lang);
 }
 
-// === Trang chọn loại đăng ký (index.html) ===
+// Logic chuyển hướng từ index.html
 const goBtn = document.getElementById("goBtn");
 if (goBtn) {
   goBtn.addEventListener("click", () => {
@@ -79,14 +80,64 @@ function translateForm(lang) {
   }
 }
 
-// === Hiển thị thông báo thành công và chuyển hướng ===
-function showSuccessAndRedirect(lang) {
-  // Đã sửa thông báo để phản ánh việc xử lý cục bộ
-  const successMessage = lang === "vi" ? 
-    "✅ Đăng ký thành công! Dữ liệu đã được xử lý cục bộ (kiểm tra console). Bạn sẽ được chuyển hướng." : 
-    "✅ Registration successful! Data was processed locally (check console). You will be redirected.";
+// ---
+
+// ## ⚙️ Logic Modal Thông Báo Thành Công
+
+// Biến toàn cục để lưu trữ bộ đếm thời gian (dùng để xóa bỏ nó sau này)
+let countdownTimer;
+
+/**
+ * Hàm quản lý việc chuyển hướng về trang chủ
+ * @param {string} lang Ngôn ngữ hiện tại
+ * @param {HTMLElement} confirmBtn Nút Xác nhận
+ */
+function setupRedirect(lang, confirmBtn) {
+    const redirectToIndex = () => {
+        // Đảm bảo xóa bỏ bộ đếm và sự kiện click trước khi chuyển hướng
+        if (countdownTimer) {
+            clearInterval(countdownTimer);
+        }
+        confirmBtn.removeEventListener('click', redirectToIndex);
+        window.location.href = `index.html?lang=${lang}`;
+    };
+    
+    // Thiết lập sự kiện cho nút Xác nhận
+    confirmBtn.onclick = redirectToIndex;
+    return redirectToIndex;
+}
+
+/**
+ * Hiển thị hộp thoại thông báo tùy chỉnh khi đăng ký thành công.
+ * @param {string} lang Ngôn ngữ hiện tại ('vi' hoặc 'en').
+ */
+function showSuccessDialog(lang) {
+  const modal = document.getElementById("success-modal");
+  const title = document.getElementById("modal-title");
+  const message = document.getElementById("modal-message");
+  const countdownEl = document.getElementById("countdown");
+  const confirmBtn = document.getElementById("confirm-btn");
   
-  // Confetti vẫn được giữ lại nếu thư viện confetti có sẵn
+  if (!modal || !confirmBtn) {
+      // Fallback nếu không tìm thấy Modal HTML
+      alert(lang === "vi" ? "Đăng ký thành công! (Không tìm thấy hộp thoại tùy chỉnh)" : "Registration Successful! (Custom dialog not found)");
+      return;
+  }
+
+  let countdown = 4;
+  
+  // Dịch nội dung
+  if (lang === "vi") {
+    title.textContent = "✅ Đăng ký thành công!";
+    message.innerHTML = `Dữ liệu đã được xử lý cục bộ (kiểm tra console). Bạn sẽ được chuyển hướng về trang đăng ký trong <span id="countdown">${countdown}</span> giây.`;
+    confirmBtn.textContent = "Xác nhận";
+  } else {
+    title.textContent = "✅ Registration Successful!";
+    message.innerHTML = `Data was processed locally (check console). You will be redirected to the registration page in <span id="countdown">${countdown}</span> seconds.`;
+    confirmBtn.textContent = "Confirm";
+  }
+  
+  // Hiển thị Confetti (nếu có)
   if (typeof confetti === 'function') {
     confetti({
       particleCount: 100,
@@ -95,14 +146,31 @@ function showSuccessAndRedirect(lang) {
     });
   } 
 
-  alert(successMessage);
+  // Hiển thị hộp thoại
+  modal.classList.add('show');
   
-  setTimeout(() => {
-    window.location.href = `index.html?lang=${lang}`;
-  }, 100); 
+  // Khởi tạo logic chuyển hướng và gán sự kiện cho nút Xác nhận
+  const redirectToIndex = setupRedirect(lang, confirmBtn);
+
+  // Bộ đếm thời gian tự động chuyển hướng
+  countdownTimer = setInterval(() => {
+    countdown--;
+    const currentCountdownEl = document.getElementById("countdown");
+    if (currentCountdownEl) {
+        currentCountdownEl.textContent = countdown;
+    }
+    
+    if (countdown <= 0) {
+      redirectToIndex(); // Gọi hàm chuyển hướng
+    }
+  }, 1000);
 }
 
-// === Thu thập dữ liệu form (Không thay đổi) ===
+// ---
+
+// ## 💾 Thu thập & Xử lý Dữ liệu (Không gửi đi)
+
+// === Thu thập dữ liệu form (Sử dụng thuộc tính NAME) ===
 function collectFormData(formId) {
     const data = {
         timestamp: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
@@ -177,8 +245,8 @@ document.addEventListener("submit", (e) => {
         // Ghi dữ liệu vào Console để kiểm tra
         console.log(`Dữ liệu form đã thu thập (${formId}):`, formData); 
         
-        // Chỉ hiển thị thông báo thành công và chuyển hướng
-        showSuccessAndRedirect(lang);
+        // Gọi hộp thoại tùy chỉnh
+        showSuccessDialog(lang);
     } else {
         alert(lang === "vi" ? "Lỗi: Không tìm thấy form ID hợp lệ." : "Error: No valid form ID found.");
     }
