@@ -6,7 +6,7 @@
 body {
   /* Hình nền và hiệu ứng */
   background: url("images/one-era-kinera-1536x675.jpg") center/cover fixed no-repeat;
-  backdrop-filter: blur(2.5px); /* Điều chỉnh độ mờ nền theo text.txt */
+  backdrop-filter: blur(2.0px); /* Điều chỉnh độ mờ nền theo text.txt */
   background-size: cover;
   display: flex;
   justify-content: center;

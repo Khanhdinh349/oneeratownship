@@ -73,7 +73,8 @@ function translateForm(lang) {
     
     if (map[page]) {
       title.textContent = map[page][lang];
-      if (submitBtn.textContent.includes("Gửi") || submitBtn.textContent.includes("Continue")) {
+      // Nếu là nút "GoBtn" ở trang index, giữ nguyên logic
+      if (!document.getElementById("goBtn")) {
           submitBtn.textContent = lang === "vi" ? "Gửi đăng ký" : "Submit";
       }
     }
@@ -131,12 +132,12 @@ function showSuccessDialog(lang) {
   modal.classList.add('show');
 
   // Redirect Setup
-  const redirectToIndex = setupRedirect(lang, confirmBtn);
+  setupRedirect(lang, confirmBtn);
 
   // Reset form an toàn
   const activeForm = modal.closest("body").querySelector("form");
   if (activeForm) activeForm.reset();
-} // <-- ĐÓNG HÀM ĐÚNG CHỖ
+} 
 
 // === Thu thập dữ liệu form ===
 function collectFormData(formId) {
@@ -192,7 +193,7 @@ function collectFormData(formId) {
 
 // === HÀM MỚI: Gửi dữ liệu qua Apps Script (Thực hiện POST) ===
 async function sendDataToSheet(formData, lang) {
-    // 🚀 Đã thay thế URL Web App của bạn vào đây
+    // 🚀 URL Web App của bạn đã được chèn vào đây
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_piizLKBsIKb2LqFZjpOud0DUATR-YjcjZ-f6Lh5mfxOi9fz_ToqeVXJtEv1gSbt6/exec'; 
     const errorMsg = lang === "vi" ? "Gửi dữ liệu thất bại." : "Data submission failed.";
     const submitBtn = document.querySelector(".submit-btn");
@@ -205,7 +206,7 @@ async function sendDataToSheet(formData, lang) {
     try {
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            mode: 'cors',
+            mode: 'cors', // Rất quan trọng cho Web App URL chính thức
             cache: 'no-cache',
             headers: {
                 'Content-Type': 'application/json'
@@ -213,6 +214,7 @@ async function sendDataToSheet(formData, lang) {
             body: JSON.stringify(formData) // Chuyển object dữ liệu thành chuỗi JSON
         });
 
+        // Nếu response bị lỗi mạng (như lỗi CORS), nó sẽ nhảy sang khối catch
         const result = await response.json();
         
         if (result.result === 'success') {
@@ -225,14 +227,13 @@ async function sendDataToSheet(formData, lang) {
 
     } catch (error) {
         console.error("Fetch Error:", error);
-        alert(`${errorMsg} Vui lòng kiểm tra kết nối mạng hoặc URL Apps Script.`);
+        alert(`${errorMsg} Vui lòng kiểm tra lại triển khai Apps Script (phải là URL /exec chính thức) hoặc lỗi mạng. Chi tiết: ${error.message}`);
     } finally {
         // Đảm bảo nút được bật lại và văn bản được đặt lại sau khi hoàn tất
         if (submitBtn) {
              submitBtn.disabled = false; 
              const page = window.location.pathname.split("/").pop().split(".")[0];
              const defaultText = lang === "vi" ? "Gửi đăng ký" : "Submit";
-             // Chỉ thay đổi nếu đây là nút submit form
              if (page && (page === 'doitac' || page === 'khach' || page === 'daily')) {
                 submitBtn.textContent = defaultText;
              }
