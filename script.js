@@ -73,7 +73,6 @@ function translateForm(lang) {
     
     if (map[page]) {
       title.textContent = map[page][lang];
-      // Nếu là nút "GoBtn" ở trang index, giữ nguyên logic
       if (!document.getElementById("goBtn")) {
           submitBtn.textContent = lang === "vi" ? "Gửi đăng ký" : "Submit";
       }
@@ -191,35 +190,34 @@ function collectFormData(formId) {
     return data;
 }
 
-// === HÀM MỚI: Gửi dữ liệu qua Apps Script (Thực hiện POST) ===
+// === HÀM GỬI DỮ LIỆU ĐẾN APPS SCRIPT ===
 async function sendDataToSheet(formData, lang) {
-    // 🚀 URL Web App của bạn đã được chèn vào đây
+    // 🚀 URL Web App của bạn
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_piizLKBsIKb2LqFZjpOud0DUATR-YjcjZ-f6Lh5mfxOi9fz_ToqeVXJtEv1gSbt6/exec'; 
     const errorMsg = lang === "vi" ? "Gửi dữ liệu thất bại." : "Data submission failed.";
     const submitBtn = document.querySelector(".submit-btn");
 
     if (submitBtn) {
-        submitBtn.disabled = true; // Tắt nút gửi trong khi chờ phản hồi
+        submitBtn.disabled = true; // Tắt nút gửi
         submitBtn.textContent = lang === "vi" ? "Đang gửi..." : "Sending...";
     }
 
     try {
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            mode: 'cors', // Rất quan trọng cho Web App URL chính thức
+            mode: 'cors',
             cache: 'no-cache',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(formData) // Chuyển object dữ liệu thành chuỗi JSON
+            body: JSON.stringify(formData)
         });
 
-        // Nếu response bị lỗi mạng (như lỗi CORS), nó sẽ nhảy sang khối catch
         const result = await response.json();
         
         if (result.result === 'success') {
             console.log("Apps Script Response:", result.message);
-            showSuccessDialog(lang); // Chỉ hiển thị thành công khi server xác nhận
+            showSuccessDialog(lang); 
         } else {
             console.error("Apps Script Error:", result.message);
             alert(`${errorMsg} Chi tiết: ${result.message}`);
@@ -227,9 +225,8 @@ async function sendDataToSheet(formData, lang) {
 
     } catch (error) {
         console.error("Fetch Error:", error);
-        alert(`${errorMsg} Vui lòng kiểm tra lại triển khai Apps Script (phải là URL /exec chính thức) hoặc lỗi mạng. Chi tiết: ${error.message}`);
+        alert(`${errorMsg} Vui lòng kiểm tra lại triển khai Apps Script (phải là URL /exec công khai) hoặc lỗi mạng. Chi tiết: ${error.message}`);
     } finally {
-        // Đảm bảo nút được bật lại và văn bản được đặt lại sau khi hoàn tất
         if (submitBtn) {
              submitBtn.disabled = false; 
              const page = window.location.pathname.split("/").pop().split(".")[0];
@@ -249,7 +246,7 @@ window.addEventListener("DOMContentLoaded", () => {
   translateForm(lang);
 });
 
-// === Submit form (ĐÃ CẬP NHẬT để gọi hàm gửi dữ liệu) ===
+// === Submit form ===
 document.addEventListener("submit", (e) => {
     e.preventDefault();
     const lang = getLang();
@@ -261,7 +258,6 @@ document.addEventListener("submit", (e) => {
 
     if (formData) {
         console.log(`Dữ liệu form đã thu thập (${formId}):`, formData); 
-        // Gọi hàm gửi dữ liệu đến Google Sheet
         sendDataToSheet(formData, lang); 
     } else {
         alert(lang === "vi" ? "Lỗi: Không tìm thấy form ID hợp lệ." : "Error: No valid form ID found.");
