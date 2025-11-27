@@ -193,7 +193,7 @@ function collectFormData(formId) {
 // === HÀM MỚI: Gửi dữ liệu qua Apps Script (Thực hiện POST) ===
 async function sendDataToSheet(formData, lang) {
     // 🚀 Đã thay thế URL Web App của bạn vào đây
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuDDY28hFBK6cBcnMnsAEhLTyn6-FrWkXoFf9dqnbM5ea7-xIaxY1E1m4CDQ3967hw/exec'; 
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_piizLKBsIKb2LqFZjpOud0DUATR-YjcjZ-f6Lh5mfxOi9fz_ToqeVXJtEv1gSbt6/exec'; 
     const errorMsg = lang === "vi" ? "Gửi dữ liệu thất bại." : "Data submission failed.";
     const submitBtn = document.querySelector(".submit-btn");
 
