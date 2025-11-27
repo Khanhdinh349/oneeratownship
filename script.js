@@ -183,39 +183,43 @@ function collectFormData(formId) {
 
 // === Gửi dữ liệu đến Apps Script (đã sửa CORS) ===
 async function sendDataToSheet(formData, lang) {
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_piizLKBsIKb2LqFZjpOud0DUATR-YjcjZ-f6Lh5mfxOi9fz_ToqeVXJtEv1gSbt6/exec';
-  const errorMsg = lang === "vi" ? "Gửi dữ liệu thất bại." : "Data submission failed.";
-  const submitBtn = document.querySelector(".submit-btn");
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_piizLKBsIKb2LqFZjpOud0DUATR-YjcjZ-f6Lh5mfxOi9fz_ToqeVXJtEv1gSbt6/exec";
 
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.textContent = lang === "vi" ? "Đang gửi..." : "Sending...";
-  }
+    const errorMsg = lang === "vi" ? "Gửi dữ liệu thất bại." : "Data submission failed.";
+    const submitBtn = document.querySelector(".submit-btn");
 
-  try {
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify(formData)
-    });
-
-    const result = await response.json();
-
-    if (result.result === "success") {
-      showSuccessDialog(lang);
-    } else {
-      alert(`${errorMsg} Chi tiết: ${result.message}`);
-    }
-
-  } catch (error) {
-    alert(`${errorMsg} Chi tiết: ${error.message}`);
-  } finally {
     if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = lang === "vi" ? "Gửi đăng ký" : "Submit";
+        submitBtn.disabled = true;
+        submitBtn.textContent = lang === "vi" ? "Đang gửi..." : "Sending...";
     }
-  }
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain"        // ⭐ KHÔNG tạo preflight
+            },
+            body: JSON.stringify(formData)          // Gửi JSON dạng text
+        });
+
+        const result = await response.json();
+
+        if (result.result === "success") {
+            showSuccessDialog(lang);
+        } else {
+            alert(`${errorMsg} Chi tiết: ${result.message}`);
+        }
+
+    } catch (error) {
+        alert(`${errorMsg} Chi tiết: ${error.message}`);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = lang === "vi" ? "Gửi đăng ký" : "Submit";
+        }
+    }
 }
+
 
 // === Khi tải trang ===
 window.addEventListener("DOMContentLoaded", () => {
