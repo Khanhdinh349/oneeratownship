@@ -141,7 +141,8 @@ function showSuccessDialog(lang) {
 // === Thu thập dữ liệu form ===
 function collectFormData(formId) {
     const data = {
-        timestamp: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
+        // Cập nhật: Sử dụng timestamp VNM/Asia/Ho_Chi_Minh
+        timestamp: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }), 
     };
 
     const fieldMap = {
@@ -190,9 +191,9 @@ function collectFormData(formId) {
     return data;
 }
 
-// === HÀM GỬI DỮ LIỆU ĐẾN APPS SCRIPT ===
+// === HÀM GỬI DỮ LIỆU ĐẾN APPS SCRIPT (Đã cập nhật URL) ===
 async function sendDataToSheet(formData, lang) {
-    // 🚀 URL Web App của bạn
+    // 🚀 Đã chèn URL Apps Script MỚI NHẤT
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznm4A2v1I5zUscZLiJ9ariapoJsBzFcBVGo8pkytMzwxS7SO3F5t4g3VuYVuZAHUSB7A/exec'; 
     const errorMsg = lang === "vi" ? "Gửi dữ liệu thất bại." : "Data submission failed.";
     const submitBtn = document.querySelector(".submit-btn");
@@ -205,7 +206,7 @@ async function sendDataToSheet(formData, lang) {
     try {
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
-            mode: 'cors',
+            mode: 'cors', // Cần thiết cho CORS
             cache: 'no-cache',
             headers: {
                 'Content-Type': 'application/json'
@@ -213,6 +214,11 @@ async function sendDataToSheet(formData, lang) {
             body: JSON.stringify(formData)
         });
 
+        // Kiểm tra lỗi HTTP (ví dụ: 404, 500)
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
         
         if (result.result === 'success') {
@@ -225,7 +231,8 @@ async function sendDataToSheet(formData, lang) {
 
     } catch (error) {
         console.error("Fetch Error:", error);
-        alert(`${errorMsg} Vui lòng kiểm tra lại triển khai Apps Script (phải là URL /exec công khai) hoặc lỗi mạng. Chi tiết: ${error.message}`);
+        // Thông báo lỗi chi tiết, hướng dẫn kiểm tra Deploy
+        alert(`${errorMsg} Vui lòng kiểm tra lại TRIỂN KHAI APPS SCRIPT (phải là URL /exec công khai 'Anyone'). Chi tiết: ${error.message}`);
     } finally {
         if (submitBtn) {
              submitBtn.disabled = false; 
