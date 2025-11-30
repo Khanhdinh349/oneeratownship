@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ONE ERA KINERA</title>
+  <link rel="icon" type="image/png" href="images/icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="form-container">
+    <div class="logo-container">
+      <img src="images/logo-one-era.png" alt="Logo" />
+    </div>
+
+    <h2>Chào mừng bạn đến hệ thống đăng ký</h2>
+
+    <div class="form-group">
+      <label>Chọn ngôn ngữ / Select Language:</label>
+      <select id="language">
+        <option value="vi">Tiếng Việt</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Chọn vai trò của bạn:...</label>
+      <select id="userType">
+        <option value="">-- Tôi là.../I am... --</option>
+        <option value="doitac">Đối tác / Partner</option>
+        <option value="khach">Khách tham quan / Visitor</option>
+        <option value="daily">Đại lý / Agency</option>
+      </select>
+    </div>
+
+    <button class="submit-btn" id="goBtn">Tiếp tục / Continue</button>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</body>
+</html>

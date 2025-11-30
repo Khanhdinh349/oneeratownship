@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ONE ERA KINERA | Đăng Ký Khách</title>
+  <link rel="icon" type="image/png" href="images/icon.png" />
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="form-container">
+    <img src="images/logo-one-era.png" alt="Company Logo" class="form-logo" />
+    <h2 id="form-title">Đăng Ký Khách</h2>
+
+    <form id="form-khach">
+      <div class="form-group">
+        <label data-vi="Họ và tên của bạn là: " data-en="Full Name: "></label>
+        <input type="text" data-ph-vi="Nhập họ và tên" data-ph-en="Enter full name" name="fullName"  />
+      </div>
+
+      <div class="form-group">
+        <label data-vi="Số CCCD: " data-en="ID Number: "></label>
+        <input type="text" data-ph-vi="Nhập số CCCD" data-ph-en="Enter ID number" name="idNumber"  />
+      </div>
+
+      <div class="form-group">
+        <label data-vi="SĐT " data-en="Phone Number "></label>
+        <input type="tel" data-ph-vi="Nhập số điện thoại" data-ph-en="Enter phone number" name="phoneNumber"  />
+      </div>
+
+      <div class="form-group">
+        <label data-vi="Email (nếu có)" data-en="Email (if any)"></label>
+        <input type="email" data-ph-vi="Nhập email nếu có" data-ph-en="Enter email if available" name="email" />
+      </div>
+
+      <div class="form-group date-time-group">
+        
+        <div class="date-time-field">
+          <label data-vi="Ngày" data-en="Date"></label>
+          <input type="date" id="visitDate" name="visitDate" required />
+        </div>
+
+        <div class="date-time-field">
+          <label data-vi="Giờ *" data-en="Time *"></label>
+          <input type="time" id="visitTime" name="visitTime" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label data-vi="Ghi chú" data-en="Notes"></label>
+        <textarea data-ph-vi="Ghi chú thêm (nếu có)" data-ph-en="Additional notes (optional)" name="notes"></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn">Gửi đăng ký</button>
+    </form>
+  </div>
+
+  <div id="success-modal" class="modal-overlay">
+    <div class="modal-content">
+      <img src="images/logo-one-era.png" alt="One Era Logo" class="modal-logo" />
+      <h3 id="modal-title">✅ Đăng ký thành công!</h3>
+      <p id="modal-message">
+        Chào Mừng Đến Với One Era <span id="countdown">4</span> giây.
+      </p>
+      <button id="confirm-btn">Xác nhận</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  </body>
+</html>
