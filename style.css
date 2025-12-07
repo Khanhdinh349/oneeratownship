@@ -1,53 +1,46 @@
 * {
-  box-sizing: border-box; /* Rất quan trọng cho Responsive Design */
+  box-sizing: border-box;
   font-family: "Segoe UI", Arial, sans-serif;
 }
 
 body {
-  /* Hình nền và hiệu ứng */
   background: url("images/one-era-kinera-1536x675.jpg") center/cover fixed no-repeat;
-  backdrop-filter: blur(1px); /* Điều chỉnh độ mờ nền theo text.txt */
+  backdrop-filter: blur(1px);
   background-size: cover;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   margin: 0;
-  /* THÊM QUY TẮC QUAN TRỌNG: Padding an toàn cho thiết bị di động */
-  padding: 20px; 
+  padding: 20px;
 }
 
 .form-container {
-  width: 100%; /* Đảm bảo chiếm toàn bộ chiều rộng có sẵn */
-  max-width: 640px; /* Giới hạn chiều rộng tối đa */
+  width: 100%;
+  max-width: 640px;
   background-color: rgba(255, 255, 255, 0.5);
-  
-  /* Đặt padding mặc định cho màn hình nhỏ */
-  padding: 30px 20px; 
-  
+  padding: 30px 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Điều chỉnh box-shadow theo text.txt */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   text-align: center;
 }
 
-/* Tối ưu logo */
 .logo-container {
   margin-bottom: 20px;
 }
 
-.form-logo, .logo-container img {
-  max-width: 150px; /* Giảm kích thước logo để phù hợp hơn với mobile */
+.form-logo,
+.logo-container img {
+  max-width: 150px;
   height: auto;
 }
 
-/* Tối ưu chữ */
 h2 {
   margin-bottom: 20px;
   color: #2c3e50;
-  font-size: 1.8em; /* Sử dụng đơn vị tương đối */
+  font-size: 1.8em;
 }
 
-/* Quy tắc chung cho các trường input */
 .form-group {
   margin-bottom: 16px;
   text-align: left;
@@ -63,11 +56,11 @@ h2 {
 .form-group input,
 .form-group select,
 .form-group textarea {
-  width: 100%; /* Rất quan trọng: Chiếm 100% chiều rộng form-container */
+  width: 100%;
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #ccc;
-  font-size: 1em; /* Sử dụng đơn vị tương đối (1em = 16px) */
+  font-size: 1em;
   box-sizing: border-box;
 }
 
@@ -82,127 +75,136 @@ h2 {
   color: white;
   border: none;
   padding: 12px;
-  font-size: 1.1em; 
+  font-size: 1.1em;
   border-radius: 6px;
   cursor: pointer;
   transition: 0.3s;
-  margin-top: 10px; 
+  margin-top: 10px;
 }
 
 .submit-btn:hover {
   background-color: #2980b9;
 }
 
-/* === BẮT ĐẦU PHẦN RESPONSIVE CHO NGÀY VÀ GIỜ (MỚI) === */
+/* Nhóm Ngày & Giờ */
 .date-time-group {
-  display: flex; /* Bật chế độ Flexbox */
-  gap: 16px; /* Khoảng cách giữa Ngày và Giờ */
+  display: flex;
+  gap: 16px;
 }
 
 .date-time-field {
-  flex: 1; /* Mỗi trường chiếm một phần bằng nhau */
-  min-width: 0; /* Cho phép các trường co lại */
+  flex: 1;
+  min-width: 0;
 }
-/* === KẾT THÚC PHẦN RESPONSIVE CHO NGÀY VÀ GIỜ === */
 
+/* Thông báo số lượng slot */
+.slot-notice {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.85em;
+  color: #34495e;
+}
 
-/* === MEDIA QUERIES: ĐIỀU CHỈNH CHI TIẾT THEO KÍCH THƯỚC MÀN HÌNH === */
+.slot-notice.near-full {
+  color: #e67e22;
+  font-weight: 600;
+}
 
-/* 1. Màn hình lớn (Desktop/Tablet ngang) */
+.slot-notice.full {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+/* Desktop */
 @media (min-width: 641px) {
-    .form-container {
-        /* Phục hồi padding lớn hơn cho màn hình lớn hơn 640px */
-        padding: 40px 48px;
-    }
+  .form-container {
+    padding: 40px 48px;
+  }
 }
 
-/* 2. Màn hình rất nhỏ (Mobile dọc, dưới 480px) */
+/* Mobile nhỏ */
 @media (max-width: 480px) {
-    h2 {
-        font-size: 1.5em; /* Giảm kích thước tiêu đề trên mobile */
-    }
-    .form-container {
-        padding: 20px 15px; /* Giảm padding ngang tối thiểu để tối ưu không gian */
-    }
-    
-    /* Buộc Ngày và Giờ xếp chồng trên mobile (khi màn hình <= 480px) */
-    .date-time-group {
-        flex-direction: column; 
-        gap: 0; 
-    }
+  h2 {
+    font-size: 1.5em;
+  }
+
+  .form-container {
+    padding: 20px 15px;
+  }
+
+  .date-time-group {
+    flex-direction: column;
+    gap: 0;
+  }
 }
 
-/* === PHẦN MỚI: SUCCESS DIALOG BOX === */
-
-/* Overlay toàn màn hình */
+/* Modal overlay */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.349);
-    display: none; 
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.349);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
 }
 
-/* Hiển thị overlay */
 .modal-overlay.show {
-    display: flex;
-    opacity: 1;
+  display: flex;
+  opacity: 1;
 }
 
-/* Hộp thoại chính */
+/* Hộp thoại modal */
 .modal-content {
-    background-color: rgba(255, 255, 255, 0.8);
-    padding: 30px;
-    border-radius: 10px;
-    text-align: center;
-    max-width: 90%;
-    width: 400px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    transform: scale(0.9);
-    transition: transform 0.3s ease-in-out;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 90%;
+  width: 400px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transform: scale(0.9);
+  transition: transform 0.3s ease-in-out;
 }
 
-/* Hiệu ứng khi hộp thoại hiển thị */
 .modal-overlay.show .modal-content {
-    transform: scale(1);
+  transform: scale(1);
 }
 
 .modal-logo {
-    max-width: 150px;
-    height: auto;
-    margin-bottom: 15px;
+  max-width: 150px;
+  height: auto;
+  margin-bottom: 15px;
 }
 
 .modal-content h3 {
-    color: #27ae60;
-    margin-top: 0;
-    font-size: 1.5em;
+  color: #27ae60;
+  margin-top: 0;
+  font-size: 1.5em;
 }
 
 .modal-content p {
-    color: #34495e;
-    margin-bottom: 25px;
-    line-height: 1.5;
+  color: #34495e;
+  margin-bottom: 25px;
+  line-height: 1.5;
 }
 
 .modal-content button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    font-size: 1em;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1em;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 .modal-content button:hover {
-    background-color: #2980b9;
+  background-color: #2980b9;
 }
