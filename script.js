@@ -185,7 +185,9 @@ const TIME_SLOTS = [
   { value: "16:00-17:30", labelVi: "16:00 – 17:30" },
 ];
 
-const SLOT_CAPACITY = 25; // tối đa 25 khách
+// const SLOT_CAPACITY = 30; // tối đa 25 khách
+const SLOT_CAPACITY = 15;
+
 let lastSlotData = null;
 
 function detectFormType() {
