@@ -180,8 +180,8 @@ function collectFormData(formId) {
 const TIME_SLOTS = [
   { value: "09:00-10:30", labelVi: "09:00 – 10:30" },
   { value: "10:30-12:00", labelVi: "10:30 – 12:00" },
-  { value: "13:00-14:30", labelVi: "13:00 – 14:30" },
-  { value: "14:30-16:00", labelVi: "14:30 – 16:00" },
+  { value: "13:30-15:00", labelVi: "13:30 - 15:00" },
+  { value: "15:00–16:30", labelVi: "15:00 – 16:30" },
   { value: "16:00-17:30", labelVi: "16:00 – 17:30" },
 ];
 
