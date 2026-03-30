@@ -5,7 +5,7 @@
 
 body {
   background: url("images/one-era-kinera-1536x675.jpg") center/cover fixed no-repeat;
-  backdrop-filter: blur(1px);
+  /* backdrop-filter: blur(1px); */
   background-size: cover;
   display: flex;
   justify-content: center;
