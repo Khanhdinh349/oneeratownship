@@ -182,7 +182,7 @@ const TIME_SLOTS = [
   { value: "10:30-12:00", labelVi: "10:30 – 12:00" },
   { value: "13:30-15:00", labelVi: "13:30 - 15:00" },
   { value: "15:00–16:30", labelVi: "15:00 – 16:30" },
-  { value: "16:00-17:30", labelVi: "16:00 – 17:30" },
+  // { value: "16:00-17:30", labelVi: "16:00 – 17:30" },
 ];
 
 // const SLOT_CAPACITY = 30; // tối đa 25 khách
