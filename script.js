@@ -186,7 +186,7 @@ const TIME_SLOTS = [
 ];
 
 // const SLOT_CAPACITY = 30; // tối đa 25 khách
-const SLOT_CAPACITY = 15;
+const SLOT_CAPACITY = 20;
 
 let lastSlotData = null;
 
