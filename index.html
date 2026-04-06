@@ -42,16 +42,11 @@
                 <div class="custom-menu" id="roleMenu">
                     <div class="menu-item" onclick="selectRole('khach')" data-vi="Khách tham quan" data-en="Visitor">Khách tham quan</div>
                     <div class="menu-item" onclick="selectRole('daily')" data-vi="Đại lý" data-en="Agency">Đại lý</div>
-                    <!-- <div class="menu-item" onclick="selectRole('doitac')" data-vi="Đối tác" data-en="Partner">Đối tác</div> -->
                 </div>
             </div>
 
             <div class="button-group">
                 <button id="btnContinue" class="btn-primary disabled" onclick="handleContinue()" data-vi="TIẾP TỤC" data-en="CONTINUE">TIẾP TỤC</button>
-                
-                <!-- <button class="btn-ghost" data-vi="Kiểm tra thông tin đã đăng ký" data-en="Check registration info">
-                    Kiểm tra thông tin đã đăng ký
-                </button> -->
             </div>
         </div>
     </div>
@@ -60,19 +55,25 @@
         let currentLang = 'vi';
         let currentRole = '';
 
-        // Đóng menu khi click ra ngoài
+        // Hàm đóng tất cả các menu đang mở
+        function closeAllMenus() {
+            document.querySelectorAll('.custom-menu').forEach(m => m.classList.remove('show'));
+            document.querySelectorAll('.chevron').forEach(c => c.classList.remove('rotate'));
+        }
+
+        // Đóng menu khi click ra ngoài vùng chọn
         window.onclick = function(event) {
             if (!event.target.closest('.input-group')) {
-                document.querySelectorAll('.custom-menu').forEach(m => m.classList.remove('show'));
-                document.querySelectorAll('.chevron').forEach(c => c.classList.remove('rotate'));
+                closeAllMenus();
             }
         }
 
-        // Toggle Menus
+        // Xử lý Toggle cho từng Box
         document.getElementById('langBox').onclick = (e) => {
             e.stopPropagation();
             toggleMenu('langMenu', 'langBox');
         };
+        
         document.getElementById('roleBox').onclick = (e) => {
             e.stopPropagation();
             toggleMenu('roleMenu', 'roleBox');
@@ -83,8 +84,8 @@
             const chevron = document.getElementById(boxId).querySelector('.chevron');
             const isOpen = menu.classList.contains('show');
             
-            document.querySelectorAll('.custom-menu').forEach(m => m.classList.remove('show'));
-            document.querySelectorAll('.chevron').forEach(c => c.classList.remove('rotate'));
+            // Đóng các menu khác trước khi mở cái mới
+            closeAllMenus();
 
             if (!isOpen) {
                 menu.classList.add('show');
@@ -92,24 +93,28 @@
             }
         }
 
+        // Chọn Ngôn ngữ và ẨN NGAY hộp thoại
         function selectLang(lang, text) {
             currentLang = lang;
             document.getElementById('selectedLangText').innerText = text;
+            closeAllMenus(); // <--- Ẩn hộp thoại sau khi chọn
             updateLanguageUI();
         }
 
+        // Chọn Vai trò và ẨN NGAY hộp thoại
         function selectRole(role) {
             currentRole = role;
             const item = document.querySelector(`#roleMenu .menu-item[onclick="selectRole('${role}')"]`);
             document.getElementById('selectedRoleText').innerText = item.getAttribute(`data-${currentLang}`);
             document.getElementById('btnContinue').classList.remove('disabled');
+            closeAllMenus(); // <--- Ẩn hộp thoại sau khi chọn
         }
 
         function updateLanguageUI() {
             document.querySelectorAll('[data-vi]').forEach(el => {
                 el.innerText = el.getAttribute(`data-${currentLang}`);
             });
-            // Cập nhật lại text của role nếu đã chọn
+            
             if (currentRole) {
                 const activeRoleItem = document.querySelector(`#roleMenu .menu-item[onclick="selectRole('${currentRole}')"]`);
                 document.getElementById('selectedRoleText').innerText = activeRoleItem.getAttribute(`data-${currentLang}`);
@@ -118,7 +123,6 @@
 
         function handleContinue() {
             if (!currentRole) return;
-            // Chuyển hướng giống logic NextJS của bạn
             window.location.href = `${currentRole}.html?lang=${currentLang}`;
         }
     </script>
