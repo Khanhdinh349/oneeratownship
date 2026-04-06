@@ -3,7 +3,7 @@
 // ================================
 const LOCK_CONFIG = {
   // "2026-04-05": ["all"], // khoá cả ngày
-  "2026-04-02": ["09:00-10:30", "10:30-12:00"], // khoá cụ thể slot
+  "2026-04-07": ["10:30-12:00"], // khoá cụ thể slot
 };
 
 function isSlotLocked(date, time) {
