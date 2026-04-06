@@ -1,9 +1,9 @@
 // ================================
-// 🔒 CONFIG LOCK NGÀY / GIỜ (THÊM MỚI)
+// 🔒 CONFIG LOCK NGÀY / GIỜ
 // ================================
 const LOCK_CONFIG = {
   // "2026-04-05": ["all"], // khoá cả ngày
-  "2026-04-02": ["09:00-10:30", "10:30-12:00"], // khoá 1 slot
+  "2026-04-02": ["09:00-10:30", "10:30-12:00"], // khoá cụ thể slot
 };
 
 function isSlotLocked(date, time) {
@@ -13,6 +13,23 @@ function isSlotLocked(date, time) {
   return locked.includes(time);
 }
 
+// ================================
+// 🛠 HELPER: LOADING STATE (CHỐNG BẤM NHIỀU LẦN)
+// ================================
+function setLoadingState(button, isLoading, lang = 'vi') {
+  if (isLoading) {
+    button.disabled = true;
+    button.style.opacity = "0.7";
+    button.style.cursor = "not-allowed";
+    button.setAttribute("data-original-text", button.textContent);
+    button.textContent = lang === "vi" ? "ĐANG XỬ LÝ..." : "PROCESSING...";
+  } else {
+    button.disabled = false;
+    button.style.opacity = "1";
+    button.style.cursor = "pointer";
+    button.textContent = button.getAttribute("data-original-text") || button.textContent;
+  }
+}
 
 // ================================
 // 🧠 Quản lý Ngôn ngữ & Điều hướng
@@ -31,21 +48,21 @@ function setLang(lang) {
 const goBtn = document.getElementById("goBtn");
 if (goBtn) {
   goBtn.addEventListener("click", () => {
-    const lang = document.getElementById("language")?.value;
+    const lang = getLang(); // Lấy lang hiện tại
     const type = document.getElementById("userType")?.value;
 
-    if (!lang || !type) {
-      alert("Lỗi: Không tìm thấy các trường chọn ngôn ngữ hoặc loại đăng ký.");
-      return;
-    }
-
-    if (type === "") {
+    if (type === "" || !type) {
       alert(lang === "vi" ? "Vui lòng chọn loại đăng ký" : "Please select a registration type");
       return;
     }
 
+    // Block nút chuyển hướng
+    setLoadingState(goBtn, true, lang);
+    
     setLang(lang);
-    window.location.href = `${type}.html?lang=${lang}`;
+    setTimeout(() => {
+        window.location.href = `${type}.html?lang=${lang}`;
+    }, 300);
   });
 }
 
@@ -62,9 +79,9 @@ function translateForm(lang) {
   });
 
   const title = document.getElementById("form-title");
-  let submitBtn = document.getElementById("goBtn") || document.querySelector(".submit-btn");
+  let submitBtn = document.querySelector(".submit-btn") || document.getElementById("goBtn");
 
-  if (title && submitBtn) {
+  if (title) {
     const map = {
       doitac: { vi: "Đăng Ký Đối Tác", en: "Partner Registration" },
       khach:  { vi: "Đăng Ký Khách",   en: "Guest Registration" },
@@ -74,7 +91,7 @@ function translateForm(lang) {
 
     if (map[page]) {
       title.textContent = map[page][lang];
-      if (!document.getElementById("goBtn")) {
+      if (submitBtn && !document.getElementById("goBtn")) {
         submitBtn.textContent = lang === "vi" ? "Gửi đăng ký" : "Submit";
       }
     }
@@ -84,17 +101,11 @@ function translateForm(lang) {
 // ================================
 // 🎉 Modal thông báo thành công
 // ================================
-let countdownTimer;
-
 function setupRedirect(lang, confirmBtn) {
   const redirectToIndex = () => {
-    if (countdownTimer) clearInterval(countdownTimer);
-    confirmBtn.removeEventListener("click", redirectToIndex);
     window.location.href = `index.html?lang=${lang}`;
   };
-
   confirmBtn.onclick = redirectToIndex;
-  return redirectToIndex;
 }
 
 function showSuccessDialog(lang) {
@@ -105,32 +116,20 @@ function showSuccessDialog(lang) {
 
   if (!modal || !confirmBtn) {
     alert(lang === "vi" ? "Đăng ký thành công!" : "Registration Successful!");
+    window.location.href = `index.html?lang=${lang}`;
     return;
   }
 
-  if (lang === "vi") {
-    title.textContent = "✅ Đăng ký thành công!";
-    message.innerHTML = `Chào Mừng Đến Với One Era.`;
-    confirmBtn.textContent = "Xác nhận";
-  } else {
-    title.textContent = "✅ Successful Registration!";
-    message.innerHTML = `Welcome to One Era.`;
-    confirmBtn.textContent = "Confirm";
-  }
+  title.textContent = lang === "vi" ? "✅ Đăng ký thành công!" : "✅ Successful Registration!";
+  message.innerHTML = lang === "vi" ? "Chào Mừng Đến Với One Era." : "Welcome to One Era.";
+  confirmBtn.textContent = lang === "vi" ? "Xác nhận" : "Confirm";
 
   if (typeof confetti === "function") {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-    });
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
   }
 
   modal.classList.add("show");
   setupRedirect(lang, confirmBtn);
-
-  const activeForm = modal.closest("body").querySelector("form");
-  if (activeForm) activeForm.reset();
 }
 
 // ================================
@@ -142,46 +141,17 @@ function collectFormData(formId) {
   };
 
   const fieldMap = {
-    "form-doitac": [
-      { selector: '[name="fullName"]', name: "fullName" },
-      { selector: '[name="idNumber"]', name: "idNumber" },
-      { selector: '[name="phoneNumber"]', name: "phoneNumber" },
-      { selector: '[name="company"]', name: "company" },
-      { selector: '[name="recDepartment"]', name: "recDepartment" },
-      { selector: '[name="recStaff"]', name: "recStaff" },
-      { selector: '[name="quantity"]', name: "quantity" },
-      { selector: '[name="visitDate"]', name: "visitDate" },
-      { selector: '[name="visitTime"]', name: "visitTime" },
-      { selector: '[name="notes"]', name: "notes" },
-    ],
-    "form-khach": [
-      { selector: '[name="fullName"]', name: "fullName" },
-      { selector: '[name="idNumber"]', name: "idNumber" },
-      { selector: '[name="phoneNumber"]', name: "phoneNumber" },
-      { selector: '[name="email"]', name: "email" },
-      { selector: '[name="quantity"]', name: "quantity" },
-      { selector: '[name="visitDate"]', name: "visitDate" },
-      { selector: '[name="visitTime"]', name: "visitTime" },
-      { selector: '[name="notes"]', name: "notes" },
-    ],
-    "form-daily": [
-      { selector: '[name="agencyName"]', name: "agencyName" },
-      { selector: '[name="staffName"]', name: "staffName" },
-      { selector: '[name="idNumber"]', name: "idNumber" },
-      { selector: '[name="phoneNumber"]', name: "phoneNumber" },
-      { selector: '[name="quantity"]', name: "quantity" },
-      { selector: '[name="visitDate"]', name: "visitDate" },
-      { selector: '[name="visitTime"]', name: "visitTime" },
-      { selector: '[name="notes"]', name: "notes" },
-    ],
+    "form-doitac": ["fullName","idNumber","phoneNumber","company","recDepartment","recStaff","quantity","visitDate","visitTime","notes"],
+    "form-khach":  ["fullName","idNumber","phoneNumber","email","quantity","visitDate","visitTime","notes"],
+    "form-daily":  ["agencyName","staffName","idNumber","phoneNumber","quantity","visitDate","visitTime","notes"],
   };
 
-  const currentFormMap = fieldMap[formId];
-  if (!currentFormMap) return null;
+  const fields = fieldMap[formId];
+  if (!fields) return null;
 
-  currentFormMap.forEach((f) => {
-    const el = document.querySelector(`#${formId} ${f.selector}`);
-    if (el) data[f.name] = el.value;
+  fields.forEach((name) => {
+    const el = document.querySelector(`#${formId} [name="${name}"]`);
+    if (el) data[name] = el.value;
   });
 
   data.formType = formId.replace("form-", "");
@@ -189,7 +159,7 @@ function collectFormData(formId) {
 }
 
 // ================================
-// ⏰ SLOT
+// ⏰ SLOT CONFIG
 // ================================
 const TIME_SLOTS = [
   { value: "09:00-10:30", labelVi: "09:00 – 10:30" },
@@ -197,120 +167,81 @@ const TIME_SLOTS = [
   { value: "13:30-15:00", labelVi: "13:30 - 15:00" },
   { value: "15:00-16:30", labelVi: "15:00 – 16:30" },
 ];
-
-const SLOT_CAPACITY = 20;
-
-let lastSlotData = null;
+const SLOT_CAPACITY = 30; // Đã cập nhật theo yêu cầu trước đó
 
 function detectFormType() {
-  const page = window.location.pathname.split("/").pop().split(".")[0];
-  if (["doitac", "khach", "daily"].includes(page)) return page;
-  return "";
+  return window.location.pathname.split("/").pop().split(".")[0];
 }
 
-function getSlotMeta(value) {
-  return TIME_SLOTS.find((s) => s.value === value);
-}
-
-// ================================
-// 🔥 UPDATE SLOT (CHỈ THÊM LOCK)
-// ================================
 function updateTimeOptions(slotData) {
   const timeSelect = document.getElementById("visitTime");
-  if (!timeSelect || !slotData || !slotData.slots) return;
-
-  lastSlotData = slotData;
-  let needClearSelection = false;
-
   const selectedDate = document.getElementById("visitDate")?.value;
+  if (!timeSelect || !slotData?.slots) return;
 
   Array.from(timeSelect.options).forEach((opt) => {
     const val = opt.value;
     if (!val) return;
 
-    const meta = getSlotMeta(val);
+    const meta = TIME_SLOTS.find(s => s.value === val);
     const baseLabel = meta ? meta.labelVi : opt.textContent;
     const count = slotData.slots[val] || 0;
 
-    opt.hidden = false;
     opt.disabled = false;
 
-    // 🔒 LOCK
     if (isSlotLocked(selectedDate, val)) {
       opt.disabled = true;
       opt.textContent = `${baseLabel} (ĐÃ KHOÁ)`;
-      if (timeSelect.value === val) needClearSelection = true;
-      return;
-    }
-
-    // FULL
-    if (count >= SLOT_CAPACITY) {
+    } else if (count >= SLOT_CAPACITY) {
       opt.disabled = true;
-      opt.textContent = `${baseLabel} (ĐÃ ĐỦ SLOT)`;
-      if (timeSelect.value === val) needClearSelection = true;
-    } else if (count > 0) {
-      opt.textContent = `${baseLabel} (${count}/${SLOT_CAPACITY})`;
+      opt.textContent = `${baseLabel} (HẾT CHỖ)`;
     } else {
-      opt.textContent = baseLabel;
+      opt.textContent = count > 0 ? `${baseLabel} (${count}/${SLOT_CAPACITY})` : baseLabel;
     }
   });
-
-  if (needClearSelection) {
-    timeSelect.value = "";
-  }
 }
 
 // ================================
-// 🌐 API
+// 🌐 API & SUBMIT
 // ================================
 const APPSSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwNPeNr19fJr7hpO57m222AtX9cGisM0SVQydmofrd0RmoiDS7K4eGz6TVJYnz908YuQ/exec";
 
 function fetchSlotStatus(dateStr, formType) {
   if (!dateStr) return;
-
-  const url = `${APPSSCRIPT_URL}?action=getSlots&date=${dateStr}&formType=${formType}`;
-
-  fetch(url)
+  fetch(`${APPSSCRIPT_URL}?action=getSlots&date=${dateStr}&formType=${formType}`)
     .then(res => res.json())
-    .then(data => {
-      if (data.result === "success") {
-        updateTimeOptions(data);
-      }
-    });
+    .then(data => data.result === "success" && updateTimeOptions(data));
 }
 
-// ================================
-// 🚀 INIT
-// ================================
+// KHỞI TẠO
 window.addEventListener("DOMContentLoaded", () => {
-  translateForm(getLang());
+  const lang = getLang();
+  translateForm(lang);
 
   const dateInput = document.getElementById("visitDate");
   if (dateInput) {
-    dateInput.addEventListener("change", () => {
-      const formType = detectFormType();
-      fetchSlotStatus(dateInput.value, formType);
-    });
+    dateInput.addEventListener("change", () => fetchSlotStatus(dateInput.value, detectFormType()));
   }
 });
 
-// ================================
-// 🚀 SUBMIT (CHẶN LOCK)
-// ================================
+// XỬ LÝ SUBMIT FORM
 document.addEventListener("submit", (e) => {
   e.preventDefault();
-
   const lang = getLang();
   const formId = e.target.id;
-  if (!formId.startsWith("form-")) return;
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+
+  if (!formId.startsWith("form-") || !submitBtn) return;
 
   const formData = collectFormData(formId);
 
-  // 🔒 BLOCK nếu bị khoá
+  // 1. Kiểm tra Lock Slot
   if (isSlotLocked(formData.visitDate, formData.visitTime)) {
-    alert("Khung giờ này đã bị khóa. Vui lòng chọn khung khác.");
+    alert(lang === "vi" ? "Khung giờ này đã bị khóa." : "This slot is locked.");
     return;
   }
+
+  // 2. Bật trạng thái Loading & Block nút
+  setLoadingState(submitBtn, true, lang);
 
   fetch(APPSSCRIPT_URL, {
     method: "POST",
@@ -321,7 +252,13 @@ document.addEventListener("submit", (e) => {
       if (data.result === "success") {
         showSuccessDialog(lang);
       } else {
-        alert(data.message || "Lỗi");
+        alert(data.message || "Lỗi hệ thống");
+        setLoadingState(submitBtn, false, lang); // Mở lại nút nếu lỗi
       }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Không thể kết nối máy chủ.");
+      setLoadingState(submitBtn, false, lang); // Mở lại nút nếu lỗi
     });
 });
