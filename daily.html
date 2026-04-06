@@ -1,92 +1,106 @@
 <!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ONE ERA | Đăng Ký Đại Lý</title>
-    <link rel="icon" type="image/png" href="images/icon.png" />
-    <link rel="stylesheet" href="style.css" />
-    <script defer src="script.js"></script>
-  </head>
-  <body>
-    <div class="form-container">
-      <img src="images/logo-one-era.png" alt="Company Logo" class="form-logo" />
-      <h2 id="form-title">Đăng Ký Đại Lý</h2>
-
-      <form id="form-daily">
-        <div class="form-group">
-          <label data-vi="Tên đại lý " data-en="Agency Name "></label>
-          <input type="text" data-ph-vi="Nhập tên đại lý"
-            data-ph-en="Enter agency name" name="agencyName" />
-        </div>
-
-        <div class="form-group">
-          <label data-vi="Tên nhân viên " data-en="Staff Name "></label>
-          <input type="text" data-ph-vi="Nhập tên nhân viên"
-            data-ph-en="Enter staff name" name="staffName" />
-        </div>
-
-        <div class="form-group">
-          <label data-vi="CCCD " data-en="ID Number "></label>
-          <input type="text" data-ph-vi="Nhập số CCCD"
-            data-ph-en="Enter ID number" name="idNumber" />
-        </div>
-
-        <div class="form-group">
-          <label data-vi="SĐT " data-en="Phone Number "></label>
-          <input type="tel" data-ph-vi="Nhập số điện thoại"
-            data-ph-en="Enter phone number" name="phoneNumber" />
-        </div>
-
-        <div class="form-group">
-          <label data-vi="Số lượng khách *"
-            data-en="Number of Guests *"></label>
-          <input type="number" min="1" max="25" value="1"
-            data-ph-vi="Nhập số lượng khách"
-            data-ph-en="Enter number of guests"
-            name="quantity" required />
-        </div>
-
-        <div class="form-group date-time-group">
-          <div class="date-time-field">
-            <label data-vi="Ngày *" data-en="Date *"></label>
-            <input type="date" id="visitDate" name="visitDate" required />
-          </div>
-
-          <div class="date-time-field">
-            <label data-vi="Giờ *" data-en="Time *"></label>
-            <select id="visitTime" name="visitTime" required>
-              <option value>-- Chọn khung giờ --</option>
-              <option value="09:00-10:30">09:00 – 10:30</option>
-              <option value="10:30-12:00">10:30 – 12:00</option>
-              <option value="13:30-15:00">13:30 - 15:00</option>
-              <option value="15:00–16:30">15:00 – 16:30</option>
-              <!-- <option value="16:00-17:30">16:00 – 17:00</option> -->
-
-              <!-- CN -->
-              <!-- <option value="13:00-14:30">9:00 – 10:30</option>
-              <option value="14:30-16:00">10:30 – 12:00</option>
-              <option value="16:00-17:30">13:30 – 15:00</option> 
-              <option value="14:30-16:00">15:00 – 16:30</option>-->
-            </select>
-            <small id="slotNotice" class="slot-notice"></small>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label data-vi="Ghi chú" data-en="Notes"></label>
-          <textarea data-ph-vi="Ghi chú thêm (nếu có)"
-            data-ph-en="Additional notes (optional)" name="notes"></textarea>
-        </div>
-
-        <button type="submit" class="submit-btn">Gửi đăng ký</button>
-      </form>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ONE ERA | Đăng Ký Đại Lý</title>
+  <link rel="icon" type="image/png" href="images/icon.png" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="daily.css" />
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="glassContainer">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+      <div class="backBtn" onclick="history.back()">
+        <span>← QUAY LẠI</span>
+      </div>
+      <!-- <img src="images/logo-one-era.png" alt="Logo" class="form-logo-small"> -->
     </div>
 
-    <div id="success-modal" class="modal-overlay">
+    <h1 class="title">ĐĂNG KÝ TIẾP ĐÓN ĐẠI LÝ</h1>
+
+    <form id="form-daily">
+      <div style="position: relative; margin-bottom: 2rem;">
+        <label class="label">ĐƠN VỊ ĐẠI LÝ *</label>
+        <div class="customSelectHeader" id="agencyHeader">
+          <span id="selectedAgencyText" style="color: var(--color-lavender);">-- Chọn Đại lý --</span>
+          <span style="color: var(--color-sunset); font-size: 10px;">▼</span>
+        </div>
+        
+        <input type="hidden" name="agencyName" id="agencyValue" required>
+
+        <div class="dropdownList" id="agencyDropdown" style="display: none;">
+          <div class="scrollArea" id="agencyList">
+            </div>
+        </div>
+
+        <div id="extraInputContainer" class="extraInputContainer" style="display: none;">
+          <input type="text" id="customAgencyInput" name="customAgencyName" class="regInputExtra" placeholder="Nhập tên đại lý của bạn...">
+        </div>
+      </div>
+
+      <div class="formGrid">
+        <div>
+          <label class="label">HỌ TÊN NHÂN VIÊN *</label>
+          <input type="text" class="regInput" name="staffName" required>
+        </div>
+        <div>
+          <label class="label">CCCD NHÂN VIÊN</label>
+          <input type="text" class="regInput" name="idNumber">
+        </div>
+        <div style="grid-column: span 2;">
+          <label class="label">SỐ ĐIỆN THOẠI NHÂN VIÊN *</label>
+          <input type="tel" class="regInput" name="phoneNumber" required>
+        </div>
+      </div>
+
+      <div class="formGrid" style="margin-top: 1.5rem;">
+        <div>
+          <label class="label">TÊN KHÁCH HÀNG (VIẾT TẮT)</label>
+          <input type="text" class="regInput" name="customerName" placeholder="VD: Anh ...">
+        </div>
+        <div>
+          <label class="label">4 SỐ CUỐI SĐT KHÁCH</label>
+          <input type="text" class="regInput" name="customerPhoneSuffix" maxlength="4" placeholder="____">
+        </div>
+      </div>
+
+      <div class="subSelectionArea">
+        <div>
+          <label class="label">SL KHÁCH</label>
+          <input type="number" class="regInput" name="quantity" value="1" min="1">
+        </div>
+        <div>
+          <label class="label">NGÀY</label>
+          <input type="date" class="regInput" id="visitDate" name="visitDate" required>
+        </div>
+        <div>
+          <label class="label">KHUNG GIỜ</label>
+          <select class="regInput" name="visitTime" required>
+            <option value="09:00">09:00</option>
+            <option value="10:30">10:30</option>
+            <option value="13:30">13:30</option>
+            <option value="15:00">15:00</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem;">
+                <label class="label" data-vi="Ghi chú thêm" data-en="Additional Notes"></label>
+                <textarea class="regInput" name="notes" rows="3" 
+                    data-ph-vi="Nhập yêu cầu đặc biệt hoặc ghi chú tại đây..." 
+                    data-ph-en="Enter special requests or notes here..."
+                    style="resize: none;"></textarea>
+      </div>
+
+      <button type="submit" class="btnSubmit">XÁC NHẬN ĐĂNG KÝ</button>
+    </form>
+  </div>
+
+  <div id="success-modal" class="modal-overlay">
       <div class="modal-content">
-        <img src="images/logo-one-era.png" alt="One Era Logo"
-          class="modal-logo" />
+        <img src="images/logo-one-era.png" alt="One Era Logo" class="modal-logo" />
         <h3 id="modal-title">✅ Đăng ký thành công!</h3>
         <p id="modal-message">
           Chào Mừng Đến Với One Era <span id="countdown">4</span> giây.
@@ -95,7 +109,62 @@
       </div>
     </div>
 
-    <script
-      src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  </body>
+  <script>
+    // Logic Dropdown Đại lý
+    const agencies = [
+      "THE ONE REAL ESTATE", "REVER", "REALPLUS", "QS LAND", "INDOCHINE", 
+      "ERA VIỆT NAM", "LỘC PHÁT HƯNG & STHOME", "BÁCH NHƯ", "DOUBLE LAND", 
+      "GENIE PROPERTY", "KZEN HOLDINGS", "THẾ GIỚI ĐẤT VIỆT", "VẠN XUÂN SERVICE", 
+      "SGROUP", "KIM OANH REALTY", "KHÁC (VUI LÒNG NHẬP)"
+    ];
+
+    const header = document.getElementById('agencyHeader');
+    const dropdown = document.getElementById('agencyDropdown');
+    const listContainer = document.getElementById('agencyList');
+    const selectedText = document.getElementById('selectedAgencyText');
+    const agencyValue = document.getElementById('agencyValue');
+    const extraContainer = document.getElementById('extraInputContainer');
+
+    agencies.forEach(agency => {
+      const item = document.createElement('div');
+      item.className = 'dropdownItem';
+      item.innerText = agency;
+      item.onclick = () => {
+        selectedText.innerText = agency;
+        selectedText.style.color = "#ffffff";
+        agencyValue.value = agency;
+        dropdown.style.display = 'none';
+        if (agency.includes("KHÁC")) {
+          extraContainer.style.display = 'block';
+        } else {
+          extraContainer.style.display = 'none';
+        }
+      };
+      listContainer.appendChild(item);
+    });
+
+    header.onclick = (e) => {
+      e.stopPropagation();
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    };
+    window.onclick = () => dropdown.style.display = 'none';
+
+    // Set giới hạn ngày
+    const dateInput = document.getElementById('visitDate');
+    
+    // 1. Lấy ngày hiện tại (Hôm nay)
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    
+    // 2. Tính toán ngày tối đa (Hôm nay + 2 ngày)
+    const maxDate = new Date();
+    maxDate.setDate(now.getDate() + 2);
+    const maxStr = maxDate.toISOString().split('T')[0];
+
+    // 3. Gán vào Input
+    dateInput.value = todayStr; // Mặc định chọn hôm nay
+    dateInput.min = todayStr;   // Không được chọn ngày quá khứ
+    dateInput.max = maxStr;     // Chỉ được chọn trong vòng 2 ngày tới
+  </script>
+</body>
 </html>

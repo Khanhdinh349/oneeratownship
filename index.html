@@ -1,42 +1,126 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ONE ERA</title>
-  <link rel="icon" type="image/png" href="images/icon.png" />
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ONE ERA | Welcome</title>
+    <link rel="icon" type="image/png" href="images/icon.png" />
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="form-container">
-    <div class="logo-container">
-      <img src="images/logo-one-era.png" alt="Logo" />
+    <div class="glass-container animate-fade-in">
+        <img src="images/logo-one-era.png" alt="One Era" class="form-logo">
+
+        <div class="header-text">
+            <h2>
+                <span class="subtitle" data-vi="Thành phố" data-en="The City of">Thành phố</span>
+                <span class="main-title" data-vi="VẠN TIỀM NĂNG" data-en="ENDLESS POSSIBILITIES">VẠN TIỀM NĂNG</span>
+            </h2>
+            <div class="divider"></div>
+        </div>
+
+        <div class="selection-wrapper">
+            <div class="input-group">
+                <span class="label">Ngôn ngữ / Language</span>
+                <div class="custom-select-box" id="langBox">
+                    <span id="selectedLangText">TIẾNG VIỆT</span>
+                    <svg class="chevron" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </div>
+                <div class="custom-menu" id="langMenu">
+                    <div class="menu-item" onclick="selectLang('vi', 'TIẾNG VIỆT')">Tiếng Việt</div>
+                    <div class="menu-item" onclick="selectLang('en', 'English')">English</div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <span class="label" data-vi="Bạn là... / I am..." data-en="I am...">Bạn là... / I am...</span>
+                <div class="custom-select-box" id="roleBox">
+                    <span id="selectedRoleText" data-vi="-- CHỌN VAI TRÒ --" data-en="-- SELECT ROLE --">-- CHỌN VAI TRÒ --</span>
+                    <svg class="chevron" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                </div>
+                <div class="custom-menu" id="roleMenu">
+                    <div class="menu-item" onclick="selectRole('khach')" data-vi="Khách tham quan" data-en="Visitor">Khách tham quan</div>
+                    <div class="menu-item" onclick="selectRole('daily')" data-vi="Đại lý" data-en="Agency">Đại lý</div>
+                    <!-- <div class="menu-item" onclick="selectRole('doitac')" data-vi="Đối tác" data-en="Partner">Đối tác</div> -->
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="btnContinue" class="btn-primary disabled" onclick="handleContinue()" data-vi="TIẾP TỤC" data-en="CONTINUE">TIẾP TỤC</button>
+                
+                <!-- <button class="btn-ghost" data-vi="Kiểm tra thông tin đã đăng ký" data-en="Check registration info">
+                    Kiểm tra thông tin đã đăng ký
+                </button> -->
+            </div>
+        </div>
     </div>
 
-    <h2>Chào mừng bạn đến hệ thống đăng ký</h2>
+    <script>
+        let currentLang = 'vi';
+        let currentRole = '';
 
-    <div class="form-group">
-      <label>Chọn ngôn ngữ / Select Language:</label>
-      <select id="language">
-        <option value="vi">Tiếng Việt</option>
-        <option value="en">English</option>
-      </select>
-    </div>
+        // Đóng menu khi click ra ngoài
+        window.onclick = function(event) {
+            if (!event.target.closest('.input-group')) {
+                document.querySelectorAll('.custom-menu').forEach(m => m.classList.remove('show'));
+                document.querySelectorAll('.chevron').forEach(c => c.classList.remove('rotate'));
+            }
+        }
 
-    <div class="form-group">
-      <label>Chọn vai trò của bạn / Choose your role:</label>
-      <select id="userType">
-        <!-- <option value="">-- Tôi là.../I am... --</option> -->
-        <!-- <option value="doitac">Đối tác / Partner</option> -->
-        <option value="khach">Khách tham quan / Visitor</option>
-        <!-- <option value="daily">Đại lý / Agency</option> -->
-      </select>
-    </div>
+        // Toggle Menus
+        document.getElementById('langBox').onclick = (e) => {
+            e.stopPropagation();
+            toggleMenu('langMenu', 'langBox');
+        };
+        document.getElementById('roleBox').onclick = (e) => {
+            e.stopPropagation();
+            toggleMenu('roleMenu', 'roleBox');
+        };
 
-    <button class="submit-btn" id="goBtn">Tiếp tục / Continue</button>
-  </div>
+        function toggleMenu(menuId, boxId) {
+            const menu = document.getElementById(menuId);
+            const chevron = document.getElementById(boxId).querySelector('.chevron');
+            const isOpen = menu.classList.contains('show');
+            
+            document.querySelectorAll('.custom-menu').forEach(m => m.classList.remove('show'));
+            document.querySelectorAll('.chevron').forEach(c => c.classList.remove('rotate'));
 
-  <script src="script.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+            if (!isOpen) {
+                menu.classList.add('show');
+                chevron.classList.add('rotate');
+            }
+        }
+
+        function selectLang(lang, text) {
+            currentLang = lang;
+            document.getElementById('selectedLangText').innerText = text;
+            updateLanguageUI();
+        }
+
+        function selectRole(role) {
+            currentRole = role;
+            const item = document.querySelector(`#roleMenu .menu-item[onclick="selectRole('${role}')"]`);
+            document.getElementById('selectedRoleText').innerText = item.getAttribute(`data-${currentLang}`);
+            document.getElementById('btnContinue').classList.remove('disabled');
+        }
+
+        function updateLanguageUI() {
+            document.querySelectorAll('[data-vi]').forEach(el => {
+                el.innerText = el.getAttribute(`data-${currentLang}`);
+            });
+            // Cập nhật lại text của role nếu đã chọn
+            if (currentRole) {
+                const activeRoleItem = document.querySelector(`#roleMenu .menu-item[onclick="selectRole('${currentRole}')"]`);
+                document.getElementById('selectedRoleText').innerText = activeRoleItem.getAttribute(`data-${currentLang}`);
+            }
+        }
+
+        function handleContinue() {
+            if (!currentRole) return;
+            // Chuyển hướng giống logic NextJS của bạn
+            window.location.href = `${currentRole}.html?lang=${currentLang}`;
+        }
+    </script>
 </body>
 </html>
