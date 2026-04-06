@@ -1,141 +1,82 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ONE ERA | Đăng Ký Đại Lý</title>
-  <link rel="icon" type="image/png" href="images/icon.png" />
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="daily.css" />
-  <script defer src="script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ONE ERA | Đăng Ký</title>
+    <link rel="icon" type="image/png" href="images/icon.png" />
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="khach.css">
+    <script defer src="script.js"></script>
 </head>
 <body>
-  <div class="glassContainer">
-    <div class="top-nav">
-      <div class="backBtn" onclick="history.back()">
-        <span data-vi="← QUAY LẠI" data-en="← BACK">← QUAY LẠI</span>
+    <div class="glassContainer">
+        <div onclick="history.back()" style="cursor:pointer; color:var(--color-lavender); font-size:12px; margin-bottom:1rem;">← QUAY LẠI</div>
+        <h1 class="title" data-vi="ĐĂNG KÝ TRẢI NGHIỆM" data-en="REGISTRATION">ĐĂNG KÝ TRẢI NGHIỆM</h1>
+
+        <form id="form-khach">
+            <div class="formGrid">
+                <div>
+                    <label class="label" data-vi="Họ tên" data-en="Full Name"></label>
+                    <input type="text" class="regInput" name="fullName" required>
+                </div>
+                <div>
+                    <label class="label" data-vi="Số CCCD" data-en="ID Number"></label>
+                    <input type="text" class="regInput" name="idNumber" required>
+                </div>
+                <div>
+                    <label class="label" data-vi="Số điện thoại" data-en="Phone"></label>
+                    <input type="tel" class="regInput" name="phoneNumber" required>
+                </div>
+                <div>
+                    <label class="label" data-vi="Email" data-en="Email"></label>
+                    <input type="email" class="regInput" name="email">
+                </div>
+            </div>
+
+            <div class="subSelectionArea">
+                <div>
+                    <label class="label" data-vi="Số người" data-en="Guests"></label>
+                    <input type="number" class="regInput" name="guestCount" value="1" min="1">
+                </div>
+                <div>
+                    <label class="label" data-vi="Ngày đi" data-en="Date"></label>
+                    <input type="date" class="regInput" id="visitDate" name="visitDate" required>
+                </div>
+                <div>
+                    <label class="label" data-vi="Giờ" data-en="Time"></label>
+                    <select class="regInput" id="visitTime" name="visitTime" required>
+                        <option value="09:00-10:30">09:00 – 10:30</option>
+                        <option value="10:30-12:00">10:30 – 12:00</option>
+                        <option value="13:00-14:30">13:00 – 14:30</option>
+                        <option value="14:30-16:00">14:30 – 16:00</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <label class="label" data-vi="Ghi chú thêm" data-en="Additional Notes"></label>
+                <textarea class="regInput" name="notes" rows="3" 
+                    data-ph-vi="Nhập yêu cầu đặc biệt hoặc ghi chú tại đây..." 
+                    data-ph-en="Enter special requests or notes here..."
+                    style="resize: none;"></textarea>
+            </div>
+
+            <button type="submit" class="btnSubmit" data-vi="XÁC NHẬN" data-en="CONFIRM">XÁC NHẬN</button>
+        </form>
+    </div>
+
+    <div id="success-modal" class="modal-overlay">
+      <div class="modal-content">
+        <img src="images/logo-one-era.png" alt="One Era Logo" class="modal-logo" />
+        <h3 id="modal-title">✅ Đăng ký thành công!</h3>
+        <p id="modal-message">
+          Chào Mừng Đến Với One Era <span id="countdown">4</span> giây.
+        </p>
+        <button id="confirm-btn">Xác nhận</button>
       </div>
     </div>
 
-    <h1 class="title" data-vi="ĐĂNG KÝ TIẾP ĐÓN ĐẠI LÝ" data-en="AGENCY REGISTRATION">ĐĂNG KÝ TIẾP ĐÓN ĐẠI LÝ</h1>
-
-    <form id="form-daily">
-      <div class="form-group-full">
-        <label class="label" data-vi="ĐƠN VỊ ĐẠI LÝ *" data-en="AGENCY NAME *">ĐƠN VỊ ĐẠI LÝ *</label>
-        <div class="customSelectHeader" id="agencyHeader">
-          <span id="selectedAgencyText" data-vi="-- Chọn Đại lý --" data-en="-- Select Agency --">-- Chọn Đại lý --</span>
-          <span class="arrow-down">▼</span>
-        </div>
-        
-        <input type="hidden" name="agencyName" id="agencyValue" required>
-
-        <div class="dropdownList" id="agencyDropdown" style="display: none;">
-          <div class="scrollArea" id="agencyList"></div>
-        </div>
-
-        <div id="extraInputContainer" class="extraInputContainer" style="display: none;">
-          <input type="text" id="customAgencyInput" name="customAgencyName" class="regInputExtra" 
-                 data-ph-vi="Nhập tên đại lý của bạn..." data-ph-en="Enter your agency name...">
-        </div>
-      </div>
-
-      <div class="formGrid">
-        <div class="grid-item">
-          <label class="label" data-vi="HỌ TÊN NHÂN VIÊN *" data-en="STAFF NAME *">HỌ TÊN NHÂN VIÊN *</label>
-          <input type="text" class="regInput" name="fullName" required>
-        </div>
-        <div class="grid-item">
-          <label class="label" data-vi="CCCD NHÂN VIÊN" data-en="ID NUMBER">CCCD NHÂN VIÊN</label>
-          <input type="text" class="regInput" name="idNumber">
-        </div>
-        <div class="grid-item full-width-mobile">
-          <label class="label" data-vi="SỐ ĐIỆN THOẠI NHÂN VIÊN *" data-en="PHONE NUMBER *">SỐ ĐIỆN THOẠI NHÂN VIÊN *</label>
-          <input type="tel" class="regInput" name="phoneNumber" required>
-        </div>
-      </div>
-
-      <div class="formGrid" style="margin-top: 1rem;">
-        <div class="grid-item">
-          <label class="label" data-vi="TÊN KHÁCH (VIẾT TẮT)" data-en="VISITOR NAME">TÊN KHÁCH (VIẾT TẮT)</label>
-          <input type="text" class="regInput" name="customerName" placeholder="VD: Anh Tùng">
-        </div>
-        <div class="grid-item">
-          <label class="label" data-vi="4 SỐ CUỐI SĐT KHÁCH" data-en="LAST 4 DIGITS">4 SỐ CUỐI SĐT KHÁCH</label>
-          <input type="text" class="regInput" name="customerPhoneSuffix" maxlength="4" placeholder="____">
-        </div>
-      </div>
-
-      <div class="subSelectionArea">
-        <div class="sub-item">
-          <label class="label" data-vi="SL KHÁCH" data-en="GUESTS">SL KHÁCH</label>
-          <input type="number" class="regInput" name="guestCount" value="1" min="1">
-        </div>
-        <div class="sub-item">
-          <label class="label" data-vi="NGÀY" data-en="DATE">NGÀY</label>
-          <input type="date" class="regInput" id="visitDate" name="visitDate" required>
-        </div>
-        <div class="sub-item">
-          <label class="label" data-vi="KHUNG GIỜ" data-en="TIME">KHUNG GIỜ</label>
-          <select class="regInput" name="visitTime" required>
-            <option value="09:00-10:30">09:00 – 10:30</option>
-            <option value="10:30-12:00">10:30 – 12:00</option>
-            <option value="13:30-15:00">13:30 – 15:00</option>
-            <option value="15:00-16:30">15:00 – 16:30</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="margin-top: 1.5rem;">
-        <label class="label" data-vi="GHI CHÚ THÊM" data-en="ADDITIONAL NOTES">GHI CHÚ THÊM</label>
-        <textarea class="regInput" name="notes" rows="2" 
-                  data-ph-vi="Yêu cầu đặc biệt..." data-ph-en="Special requests..."
-                  style="resize: none;"></textarea>
-      </div>
-
-      <button type="submit" class="btnSubmit" data-vi="XÁC NHẬN ĐĂNG KÝ" data-en="CONFIRM">XÁC NHẬN ĐĂNG KÝ</button>
-    </form>
-  </div>
-
-  <div id="success-modal" class="modal-overlay">
-    <div class="modal-content">
-      <img src="images/logo-one-era.png" alt="Logo" class="modal-logo" />
-      <h3 id="modal-title" data-vi="✅ Đăng ký thành công!" data-en="✅ Success!">✅ Đăng ký thành công!</h3>
-      <p id="modal-message">
-        <span data-vi="Chào Mừng Đến Với One Era" data-en="Welcome to One Era">Chào Mừng Đến Với One Era</span> 
-        <span id="countdown">4</span> <span data-vi="giây." data-en="sec.">giây.</span>
-      </p>
-      <button id="confirm-btn" data-vi="Xác nhận" data-en="Confirm">Xác nhận</button>
-    </div>
-  </div>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // 1. Logic Dropdown
-      const agencies = ["THE ONE REAL ESTATE", "REVER", "REALPLUS", "QS LAND", "INDOCHINE", "ERA VIỆT NAM", "LỘC PHÁT HƯNG & STHOME", "BÁCH NHƯ", "DOUBLE LAND", "GENIE PROPERTY", "KZEN HOLDINGS", "THẾ GIỚI ĐẤT VIỆT", "VẠN XUÂN SERVICE", "SGROUP", "KIM OANH REALTY", "KHÁC (VUI LÒNG NHẬP)"];
-      const header = document.getElementById('agencyHeader'), dropdown = document.getElementById('agencyDropdown'), list = document.getElementById('agencyList'), val = document.getElementById('agencyValue'), txt = document.getElementById('selectedAgencyText'), extra = document.getElementById('extraInputContainer');
-
-      agencies.forEach(a => {
-        const item = document.createElement('div');
-        item.className = 'dropdownItem'; item.innerText = a;
-        item.onclick = () => {
-          txt.innerText = a; txt.style.color = "#fff"; val.value = a; dropdown.style.display = 'none';
-          extra.style.display = a.includes("KHÁC") ? 'block' : 'none';
-        };
-        list.appendChild(item);
-      });
-      header.onclick = (e) => { e.stopPropagation(); dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none'; };
-      document.onclick = () => dropdown.style.display = 'none';
-
-      // 2. Logic Giới hạn 2 ngày
-      const dInput = document.getElementById('visitDate');
-      const now = new Date();
-      const today = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-      const maxD = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
-      maxD.setDate(maxD.getDate() + 2);
-      const maxStr = maxD.toISOString().split('T')[0];
-
-      dInput.value = today; dInput.min = today; dInput.max = maxStr;
-    });
-  </script>
-</body>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  </body>
 </html>
