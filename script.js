@@ -218,6 +218,55 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+window.addEventListener("DOMContentLoaded", () => {
+  // --- Giữ nguyên các logic cũ của bạn (translateForm, v.v.) ---
+
+  const dateInput = document.getElementById("visitDate");
+  const timeSelect = document.getElementById("visitTime");
+
+  if (dateInput) {
+    // 1. Tự động nhảy ngày hôm nay (định dạng yyyy-mm-dd)
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    
+    dateInput.value = todayStr;
+    dateInput.min = todayStr; // Không cho chọn ngày trong quá khứ
+
+    // Gọi API load slot cho ngày hôm nay ngay lập tức
+    fetchSlotStatus(todayStr);
+  }
+
+  if (timeSelect) {
+    // 2. Tự động nhảy đến giờ gần nhất
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTimeValue = currentHour * 60 + currentMinute;
+
+    // Danh sách giờ bắt đầu của các slot (định dạng phút từ 00:00)
+    const slots = [
+      { id: "09:00-10:30", start: 9 * 60 },
+      { id: "10:30-12:00", start: 10 * 60 + 30 },
+      { id: "13:30-15:00", start: 13 * 60 + 30 },
+      { id: "15:00-16:30", start: 15 * 60 }
+    ];
+
+    // Tìm slot có giờ bắt đầu lớn hơn giờ hiện tại
+    const nextSlot = slots.find(s => s.start > currentTimeValue);
+
+    if (nextSlot) {
+      timeSelect.value = nextSlot.id;
+    } else {
+      // Nếu đã hết giờ làm việc trong ngày, mặc định chọn slot đầu tiên
+      // (Hoặc bạn có thể tự động nhảy sang ngày hôm sau)
+      timeSelect.selectedIndex = 0;
+    }
+  }
+});
+
 // Hàm hiển thị Modal (Giữ nguyên logic của bạn)
 function showSuccessDialog(lang) {
   const modal = document.getElementById("success-modal");
@@ -230,3 +279,4 @@ function showSuccessDialog(lang) {
   modal.classList.add("show");
   confirmBtn.onclick = () => window.location.href = `index.html?lang=${lang}`;
 }
+
