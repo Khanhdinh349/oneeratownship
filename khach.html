@@ -45,12 +45,19 @@
                 </div>
                 <div>
                     <label class="label" data-vi="Giờ" data-en="Time"></label>
-                    <select class="regInput" id="visitTime" name="visitTime" required>
-                        <option value="09:00-10:30">09:00 – 10:30</option>
-                        <option value="10:30-12:00">10:30 – 12:00</option>
-                        <option value="13:00-14:30">13:00 – 14:30</option>
-                        <option value="14:30-16:00">14:30 – 16:00</option>
-                    </select>
+                    <div style="position: relative;">
+                        <input type="hidden" id="visitTime" name="visitTime" value="09:00-10:30">
+                        <div class="custom-select-box" id="visitTimeBox">
+                            <span id="selectedTimeText">09:00 – 10:30</span>
+                            <svg class="chevron" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        </div>
+                        <div class="custom-menu" id="visitTimeMenu">
+                            <div class="menu-item" data-value="09:00-10:30">09:00 – 10:30</div>
+                            <div class="menu-item" data-value="10:30-12:00">10:30 – 12:00</div>
+                            <div class="menu-item" data-value="13:00-14:30">13:00 – 14:30</div>
+                            <div class="menu-item" data-value="14:30-16:00">14:30 – 16:00</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

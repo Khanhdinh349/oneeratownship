@@ -13,8 +13,8 @@ const LOCK_CONFIG = {
 const TIME_SLOTS = [
   { value: "09:00-10:30", labelVi: "09:00 – 10:30" },
   { value: "10:30-12:00", labelVi: "10:30 – 12:00" },
-  { value: "13:30-15:00", labelVi: "13:30 - 15:00" },
-  { value: "15:00-16:30", labelVi: "15:00 – 16:30" },
+  { value: "13:00-14:30", labelVi: "13:00 - 14:30" },
+  { value: "14:30-16:00", labelVi: "14:30 - 16:00" },
 ];
 
 let lastSlotData = null; // Lưu trữ dữ liệu slot từ server để kiểm tra nhanh
@@ -87,30 +87,67 @@ function fetchSlotStatus(dateStr) {
 }
 
 function updateTimeOptions(slotData) {
-  const timeSelect = document.getElementById("visitTime");
+  const timeMenu = document.getElementById("visitTimeMenu");
+  const timeValue = document.getElementById("visitTime");
+  const selectedTimeText = document.getElementById("selectedTimeText");
   const selectedDate = document.getElementById("visitDate")?.value;
-  if (!timeSelect || !slotData?.slots) return;
+  if (!timeMenu || !slotData?.slots) return;
 
-  Array.from(timeSelect.options).forEach((opt) => {
-    const val = opt.value;
+  timeMenu.querySelectorAll(".menu-item").forEach((item) => {
+    const val = item.getAttribute("data-value");
     if (!val) return;
 
     const meta = TIME_SLOTS.find(s => s.value === val);
-    const baseLabel = meta ? meta.labelVi : opt.textContent;
+    const baseLabel = meta ? meta.labelVi : val;
     const count = slotData.slots[val] || 0;
 
-    opt.disabled = false;
+    item.style.opacity = "";
+    item.style.pointerEvents = "";
 
     if (isSlotLocked(selectedDate, val)) {
-      opt.disabled = true;
-      opt.textContent = `${baseLabel} (ĐÃ KHOÁ)`;
+      item.style.opacity = "0.4";
+      item.style.pointerEvents = "none";
+      item.textContent = `${baseLabel} (ĐÃ KHOÁ)`;
+      if (timeValue && timeValue.value === val) {
+        timeValue.value = "";
+        if (selectedTimeText) selectedTimeText.textContent = "-- Chọn khung giờ --";
+      }
     } else if (count >= SLOT_CAPACITY) {
-      opt.disabled = true;
-      opt.textContent = `${baseLabel} (HẾT CHỖ)`;
+      item.style.opacity = "0.4";
+      item.style.pointerEvents = "none";
+      item.textContent = `${baseLabel} (HẾT CHỖ)`;
+      if (timeValue && timeValue.value === val) {
+        timeValue.value = "";
+        if (selectedTimeText) selectedTimeText.textContent = "-- Chọn khung giờ --";
+      }
     } else {
-      opt.textContent = count > 0 ? `${baseLabel} (${count}/${SLOT_CAPACITY})` : baseLabel;
+      item.textContent = count > 0 ? `${baseLabel} (${count}/${SLOT_CAPACITY})` : baseLabel;
+      if (timeValue && timeValue.value === val && selectedTimeText) {
+        selectedTimeText.textContent = item.textContent;
+      }
     }
   });
+}
+
+// ==========================================
+// ✅ VALIDATE FORM
+// ==========================================
+function validateForm(formData, lang) {
+  const phoneRegex = /^(0[3|5|7|8|9])[0-9]{8}$/;
+  const cccdRegex = /^[0-9]{12}$/;
+  if (formData.phoneNumber && !phoneRegex.test(formData.phoneNumber)) {
+    alert(lang === "vi"
+      ? "Số điện thoại không hợp lệ (10 số, bắt đầu bằng 03/05/07/08/09)."
+      : "Invalid phone number (10 digits, starting with 03/05/07/08/09).");
+    return false;
+  }
+  if (formData.idNumber && formData.idNumber.length > 0 && !cccdRegex.test(formData.idNumber)) {
+    alert(lang === "vi"
+      ? "Số CCCD không hợp lệ (phải là 12 chữ số)."
+      : "Invalid ID number (must be 12 digits).");
+    return false;
+  }
+  return true;
 }
 
 // ==========================================
@@ -131,6 +168,13 @@ function collectFormData(formId) {
     const el = document.querySelector(`#${formId} [name="${name}"]`);
     if (el) data[name] = el.value;
   });
+  // Fix #3: Use custom agency name if "KHÁC" was selected
+  if (formId === "form-daily") {
+    const customEl = document.querySelector('#form-daily [name="customAgencyName"]');
+    if (customEl && customEl.value && data.agencyName && data.agencyName.includes("KHÁC")) {
+      data.agencyName = customEl.value;
+    }
+  }
   data.formType = formId.replace("form-", "");
   return data;
 }
@@ -145,6 +189,9 @@ document.addEventListener("submit", (e) => {
 
   const formData = collectFormData(formId);
   const qty = Number(formData.quantity || 0);
+
+  // 0. Validate phone & ID
+  if (!validateForm(formData, lang)) return;
 
   // 1. Kiểm tra giới hạn 10 người/lần đăng ký
   if (qty > MAX_PER_REGISTRATION) {
@@ -210,11 +257,53 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Set up custom time select box
+  const timeBox = document.getElementById("visitTimeBox");
+  const timeMenu = document.getElementById("visitTimeMenu");
+  const timeHidden = document.getElementById("visitTime");
+  const selectedTimeText = document.getElementById("selectedTimeText");
+
+  if (timeBox && timeMenu) {
+    timeBox.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = timeMenu.classList.contains("show");
+      // Close agency dropdown if open (daily.html)
+      const agencyDropdown = document.getElementById("agencyDropdown");
+      if (agencyDropdown) agencyDropdown.style.display = "none";
+      timeMenu.classList.toggle("show", !isOpen);
+      timeBox.querySelector(".chevron")?.classList.toggle("rotate", !isOpen);
+    });
+
+    timeMenu.querySelectorAll(".menu-item").forEach(item => {
+      item.addEventListener("click", () => {
+        const val = item.getAttribute("data-value");
+        if (timeHidden) timeHidden.value = val;
+        if (selectedTimeText) selectedTimeText.textContent = item.textContent;
+        timeMenu.classList.remove("show");
+        timeBox.querySelector(".chevron")?.classList.remove("rotate");
+      });
+    });
+
+    document.addEventListener("click", () => {
+      timeMenu.classList.remove("show");
+      timeBox.querySelector(".chevron")?.classList.remove("rotate");
+    });
+  }
+
   const dateInput = document.getElementById("visitDate");
   if (dateInput) {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const maxDate = new Date();
+    maxDate.setDate(now.getDate() + 2);
+    const maxStr = maxDate.toISOString().split('T')[0];
+    dateInput.value = todayStr;
+    dateInput.min = todayStr;
+    dateInput.max = maxStr;
     dateInput.addEventListener("change", () => {
       fetchSlotStatus(dateInput.value);
     });
+    fetchSlotStatus(todayStr);
   }
 });
 
@@ -222,11 +311,24 @@ window.addEventListener("DOMContentLoaded", () => {
 function showSuccessDialog(lang) {
   const modal = document.getElementById("success-modal");
   const confirmBtn = document.getElementById("confirm-btn");
+  const countdownEl = document.getElementById("countdown");
   if (!modal || !confirmBtn) {
     alert("Đăng ký thành công!");
     window.location.href = `index.html?lang=${lang}`;
     return;
   }
   modal.classList.add("show");
-  confirmBtn.onclick = () => window.location.href = `index.html?lang=${lang}`;
+  let count = 4;
+  const timer = setInterval(() => {
+    count--;
+    if (countdownEl) countdownEl.textContent = count;
+    if (count <= 0) {
+      clearInterval(timer);
+      window.location.href = `index.html?lang=${lang}`;
+    }
+  }, 1000);
+  confirmBtn.onclick = () => {
+    clearInterval(timer);
+    window.location.href = `index.html?lang=${lang}`;
+  };
 }
