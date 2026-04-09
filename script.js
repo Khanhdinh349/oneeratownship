@@ -8,7 +8,7 @@ const APPSSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwNPeNr19fJr7hp
 const LOCK_CONFIG = {
   "2026-04-07": ["10:30-12:00"], 
   "2026-04-09": ["09:00-10:30", "10:30-12:00","14:30-16:00","13:00-14:30"], // Khóa toàn bộ ngày
-  // "2026-04-10": ["14:30-16:00"],
+  "2026-04-13": ["09:00-10:30"],
 };
 
 const TIME_SLOTS = [
