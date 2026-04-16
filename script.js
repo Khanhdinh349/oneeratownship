@@ -6,9 +6,9 @@ const MAX_PER_REGISTRATION = 10;    // Tối đa 10 người cho 1 lần đăng 
 const APPSSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwNPeNr19fJr7hpO57m222AtX9cGisM0SVQydmofrd0RmoiDS7K4eGz6TVJYnz908YuQ/exec";
 
 const LOCK_CONFIG = {
-  "2026-04-16": ["10:30-12:00"], 
-  "2026-04-09": ["09:00-10:30", "10:30-12:00","14:30-16:00","13:00-14:30"], // Khóa toàn bộ ngày
-  "2026-04-16": ["09:00-10:30"],
+  // "2026-04-16": ["10:30-12:00"], 
+  "2026-04-16": ["09:00-10:30", "10:30-12:00","14:30-16:00"], // Khóa toàn bộ ngày
+  // "2026-04-16": ["09:00-10:30"],
 };
 
 const TIME_SLOTS = [
