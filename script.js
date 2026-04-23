@@ -1,32 +1,37 @@
+// ==========================================
 // ⚙️ CONFIG HỆ THỐNG
 // ==========================================
-const SLOT_CAPACITY = 30;           // Tổng tối đa 30 người cho 1 khung giờ
-const MAX_PER_REGISTRATION = 10;    // Tối đa 10 người cho 1 lần đăng ký
+const SLOT_CAPACITY            = 30;   // Tổng tối đa 30 người / khung giờ
+const MAX_PER_REGISTRATION     = 10;   // Tối đa 10 người / lần đăng ký
+const MAX_REGISTRATIONS_PER_SLOT = 3; // Tối đa 3 lượt đăng ký / khung giờ
+const SECRET_TOKEN             = 'OE_2026_SECURE'; // ✅ FIX #1: phải gửi token
+
 const APPSSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwNPeNr19fJr7hpO57m222AtX9cGisM0SVQydmofrd0RmoiDS7K4eGz6TVJYnz908YuQ/exec";
 
 const LOCK_CONFIG = {
-  
-  "2026-04-25": ["09:00-10:30", "10:30-12:00","14:30-16:00","13:00-14:30"], // Khóa toàn bộ ngày
-  "2026-04-26": ["09:00-10:30", "10:30-12:00","14:30-16:00","13:00-14:30"], // Khóa toàn bộ ngày
-  "2026-04-27": ["09:00-10:30", "10:30-12:00","14:30-16:00","13:00-14:30"], // Khóa toàn bộ ngày
-  "2026-04-28": ["09:00-10:30", "10:30-12:00","14:30-16:00","13:00-14:30"], // Khóa toàn bộ ngày
-  "2026-04-29": ["09:00-10:30", "10:30-12:00","14:30-16:00","13:00-14:30"], // Khóa toàn bộ ngày
-  "2026-04-30": ["09:00-10:30", "10:30-12:00","14:30-16:00","13:00-14:30"], // Khóa toàn bộ ngày
-  "2026-05-01": ["09:00-10:30", "10:30-12:00","14:30-16:00","13:00-14:30"], // Khóa toàn bộ ngày
-  "2026-04-23": ["14:30-16:00","13:00-14:30"],
+  "2026-04-25": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-26": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-27": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-28": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-29": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-30": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-05-01": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-23": ["13:00-14:30", "14:30-16:00"],
 };
 
 const TIME_SLOTS = [
   { value: "09:00-10:30", labelVi: "09:00 – 10:30" },
   { value: "10:30-12:00", labelVi: "10:30 – 12:00" },
-  { value: "13:00-14:30", labelVi: "13:00 - 14:30" },
-  { value: "14:30-16:00", labelVi: "14:30 - 16:00" },
+  { value: "13:00-14:30", labelVi: "13:00 – 14:30" },
+  { value: "14:30-16:00", labelVi: "14:30 – 16:00" },
 ];
 
-let lastSlotData = null; // Lưu trữ dữ liệu slot từ server để kiểm tra nhanh
+// ✅ FIX #2: Lưu cả dữ liệu người lẫn dữ liệu lượt đăng ký
+let lastSlotData = null; // { "09:00-10:30": 15, ... }  — số người
+let lastRegData  = null; // { "09:00-10:30": 2,  ... }  — số lượt đăng ký
 
 // ==========================================
-// 🛠 HELPER: LOADING & LOCK SLOT
+// 🛠 HELPER
 // ==========================================
 function isSlotLocked(date, time) {
   if (!LOCK_CONFIG[date]) return false;
@@ -50,7 +55,7 @@ function setLoadingState(button, isLoading, lang = 'vi') {
 }
 
 // ==========================================
-// 🧠 NGÔN NGỮ & ĐIỀU HƯỚNG
+// 🧠 NGÔN NGỮ
 // ==========================================
 function getLang() {
   const params = new URLSearchParams(window.location.search);
@@ -68,8 +73,8 @@ function translateForm(lang) {
   if (title) {
     const map = {
       doitac: { vi: "Đăng Ký Đối Tác", en: "Partner Registration" },
-      khach:  { vi: "Đăng Ký Khách",   en: "Guest Registration" },
-      daily:  { vi: "Đăng Ký Đại Lý",  en: "Agency Registration" },
+      khach:  { vi: "Đăng Ký Khách",   en: "Guest Registration"   },
+      daily:  { vi: "Đăng Ký Đại Lý",  en: "Agency Registration"  },
     };
     const page = window.location.pathname.split("/").pop().split(".")[0];
     if (map[page]) title.textContent = map[page][lang];
@@ -81,58 +86,80 @@ function translateForm(lang) {
 // ==========================================
 function fetchSlotStatus(dateStr) {
   if (!dateStr) return;
-  // Lưu ý: Không gửi formType để Server trả về tổng của cả 3 bảng
   fetch(`${APPSSCRIPT_URL}?action=getSlots&date=${dateStr}`)
     .then(res => res.json())
     .then(data => {
       if (data.result === "success") {
-        lastSlotData = data.slots;
+        lastSlotData = data.slots;        // ✅ FIX #2: lưu số người
+        lastRegData  = data.registrations; // ✅ FIX #2: lưu số lượt
         updateTimeOptions(data);
       }
-    });
+    })
+    .catch(err => console.error("fetchSlotStatus error:", err));
 }
 
+// ✅ FIX #3: Khoá slot dựa trên CẢ HAI điều kiện — số lượt và số người
 function updateTimeOptions(slotData) {
-  const timeMenu = document.getElementById("visitTimeMenu");
-  const timeValue = document.getElementById("visitTime");
+  const timeMenu        = document.getElementById("visitTimeMenu");
+  const timeValue       = document.getElementById("visitTime");
   const selectedTimeText = document.getElementById("selectedTimeText");
-  const selectedDate = document.getElementById("visitDate")?.value;
+  const selectedDate    = document.getElementById("visitDate")?.value;
+
   if (!timeMenu || !slotData?.slots) return;
 
-  timeMenu.querySelectorAll(".menu-item").forEach((item) => {
+  const maxRegs   = slotData.maxRegistrations || MAX_REGISTRATIONS_PER_SLOT;
+  const maxPeople = slotData.maxPeople        || SLOT_CAPACITY;
+
+  timeMenu.querySelectorAll(".menu-item").forEach(item => {
     const val = item.getAttribute("data-value");
     if (!val) return;
 
-    const meta = TIME_SLOTS.find(s => s.value === val);
-    const baseLabel = meta ? meta.labelVi : val;
-    const count = slotData.slots[val] || 0;
+    const meta        = TIME_SLOTS.find(s => s.value === val);
+    const baseLabel   = meta ? meta.labelVi : val;
+    const peopleCount = (slotData.slots[val]        || 0);
+    const regCount    = (slotData.registrations?.[val] || 0);
 
-    item.style.opacity = "";
+    // Reset
+    item.style.opacity       = "";
     item.style.pointerEvents = "";
 
+    // --- Trường hợp khoá ---
+
+    // 1. Khoá thủ công qua LOCK_CONFIG
     if (isSlotLocked(selectedDate, val)) {
-      item.style.opacity = "0.4";
-      item.style.pointerEvents = "none";
-      item.textContent = `${baseLabel} (ĐÃ KHOÁ)`;
-      if (timeValue && timeValue.value === val) {
-        timeValue.value = "";
-        if (selectedTimeText) selectedTimeText.textContent = "-- Chọn khung giờ --";
-      }
-    } else if (count >= SLOT_CAPACITY) {
-      item.style.opacity = "0.4";
-      item.style.pointerEvents = "none";
-      item.textContent = `${baseLabel} (HẾT CHỖ)`;
-      if (timeValue && timeValue.value === val) {
-        timeValue.value = "";
-        if (selectedTimeText) selectedTimeText.textContent = "-- Chọn khung giờ --";
-      }
-    } else {
-      item.textContent = count > 0 ? `${baseLabel} (${count}/${SLOT_CAPACITY})` : baseLabel;
-      if (timeValue && timeValue.value === val && selectedTimeText) {
-        selectedTimeText.textContent = item.textContent;
-      }
+      _disableItem(item, `${baseLabel} (ĐÃ KHOÁ)`, timeValue, selectedTimeText, val);
+      return;
+    }
+
+    // 2. ✅ FIX #3: Đủ 3 lượt đăng ký → khoá, không cho thêm
+    if (regCount >= maxRegs) {
+      _disableItem(item, `${baseLabel} (ĐÃ ĐỦ LƯỢT)`, timeValue, selectedTimeText, val);
+      return;
+    }
+
+    // 3. Đủ 30 người → hết chỗ
+    if (peopleCount >= maxPeople) {
+      _disableItem(item, `${baseLabel} (HẾT CHỖ)`, timeValue, selectedTimeText, val);
+      return;
+    }
+
+    // --- Còn chỗ: hiển thị trạng thái ---
+    item.textContent = `${baseLabel} (${regCount}/${maxRegs} lượt · ${peopleCount}/${maxPeople} người)`;
+    if (timeValue?.value === val && selectedTimeText) {
+      selectedTimeText.textContent = item.textContent;
     }
   });
+}
+
+// Helper: vô hiệu hoá một item và reset nếu đang được chọn
+function _disableItem(item, label, timeValue, selectedTimeText, val) {
+  item.style.opacity       = "0.4";
+  item.style.pointerEvents = "none";
+  item.textContent         = label;
+  if (timeValue?.value === val) {
+    timeValue.value = "";
+    if (selectedTimeText) selectedTimeText.textContent = "-- Chọn khung giờ --";
+  }
 }
 
 // ==========================================
@@ -140,7 +167,8 @@ function updateTimeOptions(slotData) {
 // ==========================================
 function validateForm(formData, lang) {
   const phoneRegex = /^(0[3|5|7|8|9])[0-9]{8}$/;
-  const cccdRegex = /^[0-9]{12}$/;
+  const cccdRegex  = /^[0-9]{12}$/;
+
   if (formData.phoneNumber && !phoneRegex.test(formData.phoneNumber)) {
     alert(lang === "vi"
       ? "Số điện thoại không hợp lệ (10 số, bắt đầu bằng 03/05/07/08/09)."
@@ -157,72 +185,91 @@ function validateForm(formData, lang) {
 }
 
 // ==========================================
-// 🚀 XỬ LÝ SUBMIT FORM
+// 🚀 COLLECT & SUBMIT
 // ==========================================
 function collectFormData(formId) {
   const data = {
     timestamp: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
+    token: SECRET_TOKEN, // ✅ FIX #1: gửi token để server xác thực
   };
+
   const fieldMap = {
     "form-doitac": ["fullName","idNumber","phoneNumber","company","recDepartment","recStaff","quantity","visitDate","visitTime","notes"],
     "form-khach":  ["fullName","idNumber","phoneNumber","email","quantity","visitDate","visitTime","notes"],
-    "form-daily":  ["agencyName","staffName","idNumber","phoneNumber","quantity","visitDate","visitTime","notes"],
+    "form-daily":  ["agencyName","staffName","idNumber","phoneNumber","customerName","customerPhoneSuffix","quantity","visitDate","visitTime","notes"],
   };
+
   const fields = fieldMap[formId];
   if (!fields) return null;
-  fields.forEach((name) => {
+
+  fields.forEach(name => {
     const el = document.querySelector(`#${formId} [name="${name}"]`);
     if (el) data[name] = el.value;
   });
-  // Fix #3: Use custom agency name if "KHÁC" was selected
+
+  // Nếu chọn "KHÁC", dùng tên nhập tay
   if (formId === "form-daily") {
     const customEl = document.querySelector('#form-daily [name="customAgencyName"]');
-    if (customEl && customEl.value && data.agencyName && data.agencyName.includes("KHÁC")) {
+    if (customEl?.value && data.agencyName?.includes("KHÁC")) {
       data.agencyName = customEl.value;
     }
   }
+
   data.formType = formId.replace("form-", "");
   return data;
 }
 
-document.addEventListener("submit", (e) => {
+document.addEventListener("submit", e => {
   e.preventDefault();
-  const lang = getLang();
-  const formId = e.target.id;
+  const lang     = getLang();
+  const formId   = e.target.id;
   const submitBtn = e.target.querySelector('button[type="submit"]');
 
   if (!formId.startsWith("form-") || !submitBtn) return;
 
   const formData = collectFormData(formId);
-  const qty = Number(formData.quantity || 0);
+  const qty      = Number(formData.quantity || 0);
 
-  // 0. Validate phone & ID
+  // 0. Kiểm tra số điện thoại / CCCD
   if (!validateForm(formData, lang)) return;
 
-  // 1. Kiểm tra giới hạn 10 người/lần đăng ký
-  if (qty > MAX_PER_REGISTRATION) {
-    alert(lang === "vi" ? `Tối đa ${MAX_PER_REGISTRATION} người mỗi lần đăng ký.` : `Max ${MAX_PER_REGISTRATION} people per registration.`);
+  // 1. Kiểm tra giới hạn 10 người / lần
+  if (qty < 1 || qty > MAX_PER_REGISTRATION) {
+    alert(lang === "vi"
+      ? `Mỗi lần đăng ký tối đa ${MAX_PER_REGISTRATION} người.`
+      : `Max ${MAX_PER_REGISTRATION} people per registration.`);
     return;
   }
 
-  // 2. Kiểm tra Lock Slot thủ công
+  // 2. Kiểm tra khoá thủ công
   if (isSlotLocked(formData.visitDate, formData.visitTime)) {
     alert(lang === "vi" ? "Khung giờ này đã bị khóa." : "This slot is locked.");
     return;
   }
 
-  // 3. Kiểm tra tổng slot còn lại (Client-side check)
-  if (lastSlotData) {
-    const currentOccupied = lastSlotData[formData.visitTime] || 0;
-    if (currentOccupied + qty > SLOT_CAPACITY) {
-      alert(lang === "vi" 
-        ? `Không đủ chỗ. Khung giờ này chỉ còn ${SLOT_CAPACITY - currentOccupied} chỗ trống.` 
-        : `Not enough space. Only ${SLOT_CAPACITY - currentOccupied} slots left.`);
+  // 3. ✅ FIX #4: Kiểm tra giới hạn 3 lượt đăng ký (client-side)
+  if (lastRegData) {
+    const currentRegs = lastRegData[formData.visitTime] || 0;
+    if (currentRegs >= MAX_REGISTRATIONS_PER_SLOT) {
+      alert(lang === "vi"
+        ? `Khung giờ này đã đủ ${MAX_REGISTRATIONS_PER_SLOT} lượt đăng ký. Vui lòng chọn khung giờ khác.`
+        : `This slot has reached the maximum of ${MAX_REGISTRATIONS_PER_SLOT} bookings. Please select another time.`);
       return;
     }
   }
 
-  // 4. Bật trạng thái Loading & Gửi dữ liệu
+  // 4. Kiểm tra tổng 30 người (client-side)
+  if (lastSlotData) {
+    const currentOccupied = lastSlotData[formData.visitTime] || 0;
+    if (currentOccupied + qty > SLOT_CAPACITY) {
+      alert(lang === "vi"
+        ? `Không đủ chỗ. Khung giờ này chỉ còn ${SLOT_CAPACITY - currentOccupied} chỗ trống.`
+        : `Not enough space. Only ${SLOT_CAPACITY - currentOccupied} slots remaining.`);
+      return;
+    }
+  }
+
+  // 5. Gửi lên server
   setLoadingState(submitBtn, true, lang);
 
   fetch(APPSSCRIPT_URL, {
@@ -233,13 +280,20 @@ document.addEventListener("submit", (e) => {
     .then(data => {
       if (data.result === "success") {
         showSuccessDialog(lang);
+      } else if (data.result === "full") {
+        // ✅ FIX #5: Xử lý phản hồi "full" riêng biệt (khoá lượt hoặc hết chỗ)
+        alert(data.message || (lang === "vi" ? "Khung giờ đã đầy." : "This slot is full."));
+        setLoadingState(submitBtn, false, lang);
+        // Làm mới trạng thái slot để UI cập nhật ngay
+        const dateInput = document.getElementById("visitDate");
+        if (dateInput) fetchSlotStatus(dateInput.value);
       } else {
-        alert(data.message || "Lỗi hệ thống");
+        alert(data.message || "Lỗi hệ thống. Vui lòng thử lại.");
         setLoadingState(submitBtn, false, lang);
       }
     })
-    .catch(err => {
-      alert("Không thể kết nối máy chủ.");
+    .catch(() => {
+      alert(lang === "vi" ? "Không thể kết nối máy chủ." : "Cannot connect to server.");
       setLoadingState(submitBtn, false, lang);
     });
 });
@@ -251,10 +305,10 @@ window.addEventListener("DOMContentLoaded", () => {
   const lang = getLang();
   translateForm(lang);
 
-  // Ràng buộc ô nhập số lượng (không cho nhập âm hoặc quá 10)
+  // Giới hạn ô nhập số lượng
   const qtyInput = document.querySelector('input[name="quantity"]');
   if (qtyInput) {
-    qtyInput.addEventListener("change", function() {
+    qtyInput.addEventListener("change", function () {
       if (this.value > MAX_PER_REGISTRATION) {
         alert(`Tối đa ${MAX_PER_REGISTRATION} người mỗi lần`);
         this.value = MAX_PER_REGISTRATION;
@@ -263,17 +317,17 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Set up custom time select box
-  const timeBox = document.getElementById("visitTimeBox");
-  const timeMenu = document.getElementById("visitTimeMenu");
-  const timeHidden = document.getElementById("visitTime");
+  // Custom time select box
+  const timeBox          = document.getElementById("visitTimeBox");
+  const timeMenu         = document.getElementById("visitTimeMenu");
+  const timeHidden       = document.getElementById("visitTime");
   const selectedTimeText = document.getElementById("selectedTimeText");
 
   if (timeBox && timeMenu) {
-    timeBox.addEventListener("click", (e) => {
+    timeBox.addEventListener("click", e => {
       e.stopPropagation();
       const isOpen = timeMenu.classList.contains("show");
-      // Close agency dropdown if open (daily.html)
+      // Đóng dropdown đại lý nếu đang mở
       const agencyDropdown = document.getElementById("agencyDropdown");
       if (agencyDropdown) agencyDropdown.style.display = "none";
       timeMenu.classList.toggle("show", !isOpen);
@@ -282,8 +336,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
     timeMenu.querySelectorAll(".menu-item").forEach(item => {
       item.addEventListener("click", () => {
+        // Bỏ qua nếu bị vô hiệu hoá
+        if (item.style.pointerEvents === "none") return;
         const val = item.getAttribute("data-value");
-        if (timeHidden) timeHidden.value = val;
+        if (!val) return;
+        if (timeHidden)       timeHidden.value           = val;
         if (selectedTimeText) selectedTimeText.textContent = item.textContent;
         timeMenu.classList.remove("show");
         timeBox.querySelector(".chevron")?.classList.remove("rotate");
@@ -296,35 +353,41 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Ngày — set giá trị mặc định và lắng nghe thay đổi
   const dateInput = document.getElementById("visitDate");
   if (dateInput) {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const maxDate = new Date();
+    const now      = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    const maxDate  = new Date();
     maxDate.setDate(now.getDate() + 2);
-    const maxStr = maxDate.toISOString().split('T')[0];
+    const maxStr = maxDate.toISOString().split("T")[0];
+
     dateInput.value = todayStr;
-    dateInput.min = todayStr;
-    dateInput.max = maxStr;
-    dateInput.addEventListener("change", () => {
-      fetchSlotStatus(dateInput.value);
-    });
+    dateInput.min   = todayStr;
+    dateInput.max   = maxStr;
+
+    dateInput.addEventListener("change", () => fetchSlotStatus(dateInput.value));
     fetchSlotStatus(todayStr);
   }
 });
 
-// Hàm hiển thị Modal (Giữ nguyên logic của bạn)
+// ==========================================
+// ✅ MODAL THÀNH CÔNG
+// ==========================================
 function showSuccessDialog(lang) {
-  const modal = document.getElementById("success-modal");
+  const modal      = document.getElementById("success-modal");
   const confirmBtn = document.getElementById("confirm-btn");
   const countdownEl = document.getElementById("countdown");
+
   if (!modal || !confirmBtn) {
     alert("Đăng ký thành công!");
     window.location.href = `index.html?lang=${lang}`;
     return;
   }
+
   modal.classList.add("show");
   let count = 4;
+
   const timer = setInterval(() => {
     count--;
     if (countdownEl) countdownEl.textContent = count;
@@ -333,6 +396,7 @@ function showSuccessDialog(lang) {
       window.location.href = `index.html?lang=${lang}`;
     }
   }, 1000);
+
   confirmBtn.onclick = () => {
     clearInterval(timer);
     window.location.href = `index.html?lang=${lang}`;
