@@ -163,6 +163,19 @@ function _disableItem(item, label, timeValue, selectedTimeText, val) {
   }
 }
 
+function closePopup() {
+    const popup = document.getElementById('holidayPopup');
+    popup.style.display = 'none';
+}
+
+// Tùy chọn: Đóng khi click ra ngoài vùng ảnh
+window.addEventListener('click', function(event) {
+    const popup = document.getElementById('holidayPopup');
+    if (event.target == popup) {
+        closePopup();
+    }
+});
+
 // ==========================================
 // ✅ VALIDATE FORM
 // ==========================================
