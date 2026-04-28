@@ -1,391 +1,418 @@
 // ==========================================
-// ⚙️ CẤU HÌNH — chỉ cần chỉnh 1 dòng này
+// ⚙️ CONFIG HỆ THỐNG
 // ==========================================
-const SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
-const SECRET_TOKEN = 'OE_2026_SECURE';
+const SLOT_CAPACITY            = 30;   // Tổng tối đa 30 người / khung giờ
+const MAX_PER_REGISTRATION     = 10;   // Tối đa 10 người / lần đăng ký
+const MAX_REGISTRATIONS_PER_SLOT = 3; // Tối đa 3 lượt đăng ký / khung giờ
+const SECRET_TOKEN             = 'OE_2026_SECURE'; // ✅ FIX #1: phải gửi token
+
+const APPSSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwNPeNr19fJr7hpO57m222AtX9cGisM0SVQydmofrd0RmoiDS7K4eGz6TVJYnz908YuQ/exec";
+
+const LOCK_CONFIG = {
+
+  "2026-04-26": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-27": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  // "2026-04-28": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  // "2026-04-29": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-30": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-05-01": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-23": ["13:00-14:30", "14:30-16:00"],
+  "2026-04-24": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+};
+
+const TIME_SLOTS = [
+  { value: "09:00-10:30", labelVi: "09:00 – 10:30" },
+  { value: "10:30-12:00", labelVi: "10:30 – 12:00" },
+  { value: "13:00-14:30", labelVi: "13:00 – 14:30" },
+  { value: "14:30-16:00", labelVi: "14:30 – 16:00" },
+];
+
+// ✅ FIX #2: Lưu cả dữ liệu người lẫn dữ liệu lượt đăng ký
+let lastSlotData = null; // { "09:00-10:30": 15, ... }  — số người
+let lastRegData  = null; // { "09:00-10:30": 2,  ... }  — số lượt đăng ký
 
 // ==========================================
-// 🌐 NGÔN NGỮ
+// 🛠 HELPER
 // ==========================================
-const urlParams  = new URLSearchParams(window.location.search);
-let currentLang  = urlParams.get('lang') || 'vi';
+function isSlotLocked(date, time) {
+  if (!LOCK_CONFIG[date]) return false;
+  const locked = LOCK_CONFIG[date];
+  return locked.includes("all") || locked.includes(time);
+}
 
-function applyLanguage() {
-  // Labels, button text, titles
-  document.querySelectorAll('[data-vi]').forEach(el => {
-    const text = el.getAttribute(`data-${currentLang}`);
-    if (text) el.innerText = text;
-  });
-  // Placeholders
-  document.querySelectorAll('[data-ph-vi]').forEach(el => {
-    const ph = el.getAttribute(`data-ph-${currentLang}`);
-    if (ph) el.placeholder = ph;
-  });
+function setLoadingState(button, isLoading, lang = 'vi') {
+  if (isLoading) {
+    button.disabled = true;
+    button.style.opacity = "0.7";
+    button.style.cursor = "not-allowed";
+    button.setAttribute("data-original-text", button.textContent);
+    button.textContent = lang === "vi" ? "ĐANG XỬ LÝ..." : "PROCESSING...";
+  } else {
+    button.disabled = false;
+    button.style.opacity = "1";
+    button.style.cursor = "pointer";
+    button.textContent = button.getAttribute("data-original-text") || button.textContent;
+  }
 }
 
 // ==========================================
-// 📅 DATEPICKER — đặt min = hôm nay
+// 🧠 NGÔN NGỮ
 // ==========================================
-function initDatePicker() {
-  const dateInput = document.getElementById('visitDate');
-  if (!dateInput) return;
+function getLang() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("lang") || localStorage.getItem("lang") || "vi";
+}
 
-  const today = new Date();
-  const yyyy  = today.getFullYear();
-  const mm    = String(today.getMonth() + 1).padStart(2, '0');
-  const dd    = String(today.getDate()).padStart(2, '0');
-  dateInput.min = `${yyyy}-${mm}-${dd}`;
-
-  dateInput.addEventListener('change', () => {
-    const date = dateInput.value;
-    if (date) fetchAndUpdateSlots(date);
+function translateForm(lang) {
+  document.querySelectorAll("label[data-vi]").forEach(lbl => {
+    lbl.textContent = lbl.getAttribute(`data-${lang}`);
   });
+  document.querySelectorAll("[data-ph-vi]").forEach(el => {
+    el.placeholder = el.getAttribute(`data-ph-${lang}`);
+  });
+  const title = document.getElementById("form-title");
+  if (title) {
+    const map = {
+      doitac: { vi: "Đăng Ký Đối Tác", en: "Partner Registration" },
+      khach:  { vi: "Đăng Ký Khách",   en: "Guest Registration"   },
+      daily:  { vi: "Đăng Ký Đại Lý",  en: "Agency Registration"  },
+    };
+    const page = window.location.pathname.split("/").pop().split(".")[0];
+    if (map[page]) title.textContent = map[page][lang];
+  }
 }
 
 // ==========================================
-// ⏰ TIME SLOT DROPDOWN
+// ⏰ QUẢN LÝ SLOT THỜI GIAN
 // ==========================================
-function initTimeDropdown() {
-  const timeBox   = document.getElementById('visitTimeBox');
-  const timeMenu  = document.getElementById('visitTimeMenu');
-  const timeInput = document.getElementById('visitTime');
-  const timeText  = document.getElementById('selectedTimeText');
-
-  if (!timeBox || !timeMenu) return;
-
-  // Toggle mở/đóng
-  timeBox.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isOpen = timeMenu.classList.contains('show');
-    timeMenu.classList.toggle('show', !isOpen);
-    timeBox.querySelector('.chevron')?.classList.toggle('rotate', !isOpen);
-  });
-
-  // Chọn item
-  timeMenu.querySelectorAll('.menu-item').forEach(item => {
-    item.addEventListener('click', () => {
-      if (item.classList.contains('slot-disabled')) return;
-
-      const val = item.getAttribute('data-value');
-      timeInput.value = val;
-      // Hiển thị chỉ phần giờ, bỏ "(còn X lượt)"
-      timeText.textContent = val.replace('-', ' – ');
-      timeMenu.classList.remove('show');
-      timeBox.querySelector('.chevron')?.classList.remove('rotate');
-    });
-  });
-
-  // Đóng khi click ra ngoài
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('#visitTimeBox') && !e.target.closest('#visitTimeMenu')) {
-      timeMenu.classList.remove('show');
-      timeBox.querySelector('.chevron')?.classList.remove('rotate');
-    }
-  });
-}
-
-// ==========================================
-// 🔍 LẤY THÔNG TIN SLOT TỪ SERVER
-// ==========================================
-async function fetchAndUpdateSlots(date) {
-  const timeMenu  = document.getElementById('visitTimeMenu');
-  const timeInput = document.getElementById('visitTime');
-  const timeText  = document.getElementById('selectedTimeText');
-  if (!timeMenu) return;
-
-  const items = timeMenu.querySelectorAll('.menu-item');
-
-  // Hiển thị trạng thái đang tải
-  items.forEach(item => {
-    item.classList.add('slot-disabled');
-    const val = item.getAttribute('data-value');
-    item.textContent = val.replace('-', ' – ') + ' · đang tải...';
-  });
-
-  try {
-    const res  = await fetch(`${SCRIPT_URL}?action=getSlots&date=${date}`);
-    const data = await res.json();
-
-    if (data.result !== 'success') {
-      // Nếu lỗi server, mở lại tất cả
-      items.forEach(item => {
-        item.classList.remove('slot-disabled');
-        const val = item.getAttribute('data-value');
-        item.textContent = val.replace('-', ' – ');
-      });
-      return;
-    }
-
-    const { registrations, maxRegistrations } = data;
-
-    items.forEach(item => {
-      const val      = item.getAttribute('data-value');
-      const regCount = registrations[val] || 0;
-      const isFull   = regCount >= maxRegistrations;
-      const left     = maxRegistrations - regCount;
-
-      if (isFull) {
-        item.textContent = `${val.replace('-', ' – ')} · HẾT SLOT`;
-        item.classList.add('slot-disabled');
-      } else {
-        item.textContent = `${val.replace('-', ' – ')} · còn ${left} lượt`;
-        item.classList.remove('slot-disabled');
+function fetchSlotStatus(dateStr) {
+  if (!dateStr) return;
+  fetch(`${APPSSCRIPT_URL}?action=getSlots&date=${dateStr}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.result === "success") {
+        lastSlotData = data.slots;        // ✅ FIX #2: lưu số người
+        lastRegData  = data.registrations; // ✅ FIX #2: lưu số lượt
+        updateTimeOptions(data);
       }
-    });
+    })
+    .catch(err => console.error("fetchSlotStatus error:", err));
+}
 
-    // Nếu slot đang chọn đã đầy → reset
-    const currentTime = timeInput?.value;
-    if (currentTime && (registrations[currentTime] || 0) >= maxRegistrations) {
-      timeInput.value   = '';
-      timeText.textContent = currentLang === 'vi' ? '-- Chọn khung giờ --' : '-- Select time --';
+// ✅ FIX #3: Khoá slot dựa trên CẢ HAI điều kiện — số lượt và số người
+function updateTimeOptions(slotData) {
+  const timeMenu        = document.getElementById("visitTimeMenu");
+  const timeValue       = document.getElementById("visitTime");
+  const selectedTimeText = document.getElementById("selectedTimeText");
+  const selectedDate    = document.getElementById("visitDate")?.value;
+
+  if (!timeMenu || !slotData?.slots) return;
+
+  const maxRegs   = slotData.maxRegistrations || MAX_REGISTRATIONS_PER_SLOT;
+  const maxPeople = slotData.maxPeople        || SLOT_CAPACITY;
+
+  timeMenu.querySelectorAll(".menu-item").forEach(item => {
+    const val = item.getAttribute("data-value");
+    if (!val) return;
+
+    const meta        = TIME_SLOTS.find(s => s.value === val);
+    const baseLabel   = meta ? meta.labelVi : val;
+    const peopleCount = (slotData.slots[val]        || 0);
+    const regCount    = (slotData.registrations?.[val] || 0);
+
+    // Reset
+    item.style.opacity       = "";
+    item.style.pointerEvents = "";
+
+    // --- Trường hợp khoá ---
+
+    // 1. Khoá thủ công qua LOCK_CONFIG
+    if (isSlotLocked(selectedDate, val)) {
+      _disableItem(item, `${baseLabel} (ĐÃ KHOÁ)`, timeValue, selectedTimeText, val);
+      return;
     }
 
-  } catch (err) {
-    console.error('fetchSlots error:', err);
-    items.forEach(item => {
-      item.classList.remove('slot-disabled');
-      const val = item.getAttribute('data-value');
-      item.textContent = val.replace('-', ' – ');
-    });
+    // 2. ✅ FIX #3: Đủ 3 lượt đăng ký → khoá, không cho thêm
+    if (regCount >= maxRegs) {
+      _disableItem(item, `${baseLabel} (ĐÃ ĐỦ LƯỢT)`, timeValue, selectedTimeText, val);
+      return;
+    }
+
+    // 3. Đủ 30 người → hết chỗ
+    if (peopleCount >= maxPeople) {
+      _disableItem(item, `${baseLabel} (HẾT CHỖ)`, timeValue, selectedTimeText, val);
+      return;
+    }
+
+    // --- Còn chỗ: hiển thị trạng thái ---
+    item.textContent = `${baseLabel} (${regCount}/${maxRegs} lượt · ${peopleCount}/${maxPeople} người)`;
+    if (timeValue?.value === val && selectedTimeText) {
+      selectedTimeText.textContent = item.textContent;
+    }
+  });
+}
+
+// Helper: vô hiệu hoá một item và reset nếu đang được chọn
+function _disableItem(item, label, timeValue, selectedTimeText, val) {
+  item.style.opacity       = "0.4";
+  item.style.pointerEvents = "none";
+  item.textContent         = label;
+  if (timeValue?.value === val) {
+    timeValue.value = "";
+    if (selectedTimeText) selectedTimeText.textContent = "-- Chọn khung giờ --";
   }
 }
 
-// ==========================================
-// 🚀 XỬ LÝ SUBMIT CHUNG
-// ==========================================
-async function submitForm(form, formType) {
-  const btn          = form.querySelector('.btnSubmit');
-  const originalText = btn.textContent;
+function closePopup() {
+    const popup = document.getElementById('holidayPopup');
+    popup.style.display = 'none';
+}
 
-  // Validate khung giờ
-  const timeInput = document.getElementById('visitTime');
-  if (!timeInput || !timeInput.value) {
-    showAlert('⚠️ Vui lòng chọn khung giờ!');
+// Tùy chọn: Đóng khi click ra ngoài vùng ảnh
+window.addEventListener('click', function(event) {
+    const popup = document.getElementById('holidayPopup');
+    if (event.target == popup) {
+        closePopup();
+    }
+});
+
+// ==========================================
+// ✅ VALIDATE FORM
+// ==========================================
+function validateForm(formData, lang) {
+  const phoneRegex = /^(0[3|5|7|8|9])[0-9]{8}$/;
+  const cccdRegex  = /^[0-9]{12}$/;
+
+  if (formData.phoneNumber && !phoneRegex.test(formData.phoneNumber)) {
+    alert(lang === "vi"
+      ? "Số điện thoại không hợp lệ (10 số, bắt đầu bằng 03/05/07/08/09)."
+      : "Invalid phone number (10 digits, starting with 03/05/07/08/09).");
+    return false;
+  }
+  if (formData.idNumber && formData.idNumber.length > 0 && !cccdRegex.test(formData.idNumber)) {
+    alert(lang === "vi"
+      ? "Số CCCD không hợp lệ (phải là 12 chữ số)."
+      : "Invalid ID number (must be 12 digits).");
+    return false;
+  }
+  return true;
+}
+
+// ==========================================
+// 🚀 COLLECT & SUBMIT
+// ==========================================
+function collectFormData(formId) {
+  const data = {
+    timestamp: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
+    token: SECRET_TOKEN, // ✅ FIX #1: gửi token để server xác thực
+  };
+
+  const fieldMap = {
+    "form-doitac": ["fullName","idNumber","phoneNumber","company","recDepartment","recStaff","quantity","visitDate","visitTime","notes"],
+    "form-khach":  ["fullName","idNumber","phoneNumber","email","quantity","visitDate","visitTime","notes"],
+    "form-daily":  ["agencyName","staffName","idNumber","phoneNumber","customerName","customerPhoneSuffix","quantity","visitDate","visitTime","notes"],
+  };
+
+  const fields = fieldMap[formId];
+  if (!fields) return null;
+
+  fields.forEach(name => {
+    const el = document.querySelector(`#${formId} [name="${name}"]`);
+    if (el) data[name] = el.value;
+  });
+
+  // Nếu chọn "KHÁC", dùng tên nhập tay
+  if (formId === "form-daily") {
+    const customEl = document.querySelector('#form-daily [name="customAgencyName"]');
+    if (customEl?.value && data.agencyName?.includes("KHÁC")) {
+      data.agencyName = customEl.value;
+    }
+  }
+
+  data.formType = formId.replace("form-", "");
+  return data;
+}
+
+document.addEventListener("submit", e => {
+  e.preventDefault();
+  const lang     = getLang();
+  const formId   = e.target.id;
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+
+  if (!formId.startsWith("form-") || !submitBtn) return;
+
+  const formData = collectFormData(formId);
+  const qty      = Number(formData.quantity || 0);
+
+  // 0. Kiểm tra số điện thoại / CCCD
+  if (!validateForm(formData, lang)) return;
+
+  // 1. Kiểm tra giới hạn 10 người / lần
+  if (qty < 1 || qty > MAX_PER_REGISTRATION) {
+    alert(lang === "vi"
+      ? `Mỗi lần đăng ký tối đa ${MAX_PER_REGISTRATION} người.`
+      : `Max ${MAX_PER_REGISTRATION} people per registration.`);
     return;
   }
 
-  // Validate ngày
-  const dateInput = document.getElementById('visitDate');
-  if (!dateInput || !dateInput.value) {
-    showAlert('⚠️ Vui lòng chọn ngày tham quan!');
+  // 2. Kiểm tra khoá thủ công
+  if (isSlotLocked(formData.visitDate, formData.visitTime)) {
+    alert(lang === "vi" ? "Khung giờ này đã bị khóa." : "This slot is locked.");
     return;
   }
 
-  // Validate đại lý (chỉ cho form daily)
-  if (formType === 'daily') {
-    const agencyVal = document.getElementById('agencyValue')?.value;
-    if (!agencyVal) {
-      showAlert('⚠️ Vui lòng chọn đơn vị đại lý!');
+  // 3. ✅ FIX #4: Kiểm tra giới hạn 3 lượt đăng ký (client-side)
+  if (lastRegData) {
+    const currentRegs = lastRegData[formData.visitTime] || 0;
+    if (currentRegs >= MAX_REGISTRATIONS_PER_SLOT) {
+      alert(lang === "vi"
+        ? `Khung giờ này đã đủ ${MAX_REGISTRATIONS_PER_SLOT} lượt đăng ký. Vui lòng chọn khung giờ khác.`
+        : `This slot has reached the maximum of ${MAX_REGISTRATIONS_PER_SLOT} bookings. Please select another time.`);
       return;
     }
   }
 
-  // Đặt trạng thái loading
-  btn.disabled    = true;
-  btn.textContent = '⏳ Đang xử lý...';
-
-  // Thu thập dữ liệu form
-  const formData = new FormData(form);
-  const payload  = { token: SECRET_TOKEN, formType };
-
-  for (const [key, value] of formData.entries()) {
-    if (key !== 'customAgencyName') {
-      payload[key] = value.trim();
+  // 4. Kiểm tra tổng 30 người (client-side)
+  if (lastSlotData) {
+    const currentOccupied = lastSlotData[formData.visitTime] || 0;
+    if (currentOccupied + qty > SLOT_CAPACITY) {
+      alert(lang === "vi"
+        ? `Không đủ chỗ. Khung giờ này chỉ còn ${SLOT_CAPACITY - currentOccupied} chỗ trống.`
+        : `Not enough space. Only ${SLOT_CAPACITY - currentOccupied} slots remaining.`);
+      return;
     }
   }
 
-  // Xử lý tên đại lý custom (form daily)
-  if (formType === 'daily') {
-    const agencyValue = document.getElementById('agencyValue')?.value || '';
-    const customInput = document.getElementById('customAgencyInput');
-    if (agencyValue.includes('KHÁC') && customInput?.value.trim()) {
-      payload.agencyName = customInput.value.trim();
-    } else {
-      payload.agencyName = agencyValue;
-    }
-  }
+  // 5. Gửi lên server
+  setLoadingState(submitBtn, true, lang);
 
-  try {
-    const res    = await fetch(SCRIPT_URL, {
-      method:  'POST',
-      body:    JSON.stringify(payload),
+  fetch(APPSSCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify(formData),
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.result === "success") {
+        showSuccessDialog(lang);
+      } else if (data.result === "full") {
+        // ✅ FIX #5: Xử lý phản hồi "full" riêng biệt (khoá lượt hoặc hết chỗ)
+        alert(data.message || (lang === "vi" ? "Khung giờ đã đầy." : "This slot is full."));
+        setLoadingState(submitBtn, false, lang);
+        // Làm mới trạng thái slot để UI cập nhật ngay
+        const dateInput = document.getElementById("visitDate");
+        if (dateInput) fetchSlotStatus(dateInput.value);
+      } else {
+        alert(data.message || "Lỗi hệ thống. Vui lòng thử lại.");
+        setLoadingState(submitBtn, false, lang);
+      }
+    })
+    .catch(() => {
+      alert(lang === "vi" ? "Không thể kết nối máy chủ." : "Cannot connect to server.");
+      setLoadingState(submitBtn, false, lang);
     });
-    const result = await res.json();
-
-    switch (result.result) {
-      case 'success':
-        showSuccessModal(payload.fullName || payload.staffName || payload.fullName || '');
-        break;
-
-      case 'full':
-        showAlert(`⛔ ${result.message}\n\nVui lòng chọn khung giờ hoặc ngày khác.`);
-        // Refresh slots để cập nhật UI
-        if (dateInput?.value) fetchAndUpdateSlots(dateInput.value);
-        break;
-
-      case 'error':
-      default:
-        showAlert(`❌ Đã xảy ra lỗi:\n${result.message || 'Vui lòng thử lại.'}`);
-        break;
-    }
-
-  } catch (err) {
-    console.error('Submit error:', err);
-    showAlert('❌ Lỗi kết nối. Vui lòng kiểm tra mạng và thử lại!');
-  } finally {
-    btn.disabled    = false;
-    btn.textContent = originalText;
-  }
-}
+});
 
 // ==========================================
-// ✅ SUCCESS MODAL + CONFETTI
+// ✨ KHỞI TẠO
 // ==========================================
-function showSuccessModal(name) {
-  const modal      = document.getElementById('success-modal');
-  const countdown  = document.getElementById('countdown');
-  if (!modal) return;
+window.addEventListener("DOMContentLoaded", () => {
+  const lang = getLang();
+  translateForm(lang);
 
-  modal.style.display = 'flex';
-
-  // Confetti
-  if (typeof confetti !== 'undefined') {
-    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-    setTimeout(() => confetti({ particleCount: 80, spread: 50, origin: { y: 0.5, x: 0.2 } }), 400);
-    setTimeout(() => confetti({ particleCount: 80, spread: 50, origin: { y: 0.5, x: 0.8 } }), 700);
+  // Giới hạn ô nhập số lượng
+  const qtyInput = document.querySelector('input[name="quantity"]');
+  if (qtyInput) {
+    qtyInput.addEventListener("change", function () {
+      if (this.value > MAX_PER_REGISTRATION) {
+        alert(`Tối đa ${MAX_PER_REGISTRATION} người mỗi lần`);
+        this.value = MAX_PER_REGISTRATION;
+      }
+      if (this.value < 1) this.value = 1;
+    });
   }
 
+  // Custom time select box
+  const timeBox          = document.getElementById("visitTimeBox");
+  const timeMenu         = document.getElementById("visitTimeMenu");
+  const timeHidden       = document.getElementById("visitTime");
+  const selectedTimeText = document.getElementById("selectedTimeText");
+
+  if (timeBox && timeMenu) {
+    timeBox.addEventListener("click", e => {
+      e.stopPropagation();
+      const isOpen = timeMenu.classList.contains("show");
+      // Đóng dropdown đại lý nếu đang mở
+      const agencyDropdown = document.getElementById("agencyDropdown");
+      if (agencyDropdown) agencyDropdown.style.display = "none";
+      timeMenu.classList.toggle("show", !isOpen);
+      timeBox.querySelector(".chevron")?.classList.toggle("rotate", !isOpen);
+    });
+
+    timeMenu.querySelectorAll(".menu-item").forEach(item => {
+      item.addEventListener("click", () => {
+        // Bỏ qua nếu bị vô hiệu hoá
+        if (item.style.pointerEvents === "none") return;
+        const val = item.getAttribute("data-value");
+        if (!val) return;
+        if (timeHidden)       timeHidden.value           = val;
+        if (selectedTimeText) selectedTimeText.textContent = item.textContent;
+        timeMenu.classList.remove("show");
+        timeBox.querySelector(".chevron")?.classList.remove("rotate");
+      });
+    });
+
+    document.addEventListener("click", () => {
+      timeMenu.classList.remove("show");
+      timeBox.querySelector(".chevron")?.classList.remove("rotate");
+    });
+  }
+
+  // Ngày — set giá trị mặc định và lắng nghe thay đổi
+  const dateInput = document.getElementById("visitDate");
+  if (dateInput) {
+    const now      = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    const maxDate  = new Date();
+    maxDate.setDate(now.getDate() + 2);
+    const maxStr = maxDate.toISOString().split("T")[0];
+
+    dateInput.value = todayStr;
+    dateInput.min   = todayStr;
+    dateInput.max   = maxStr;
+
+    dateInput.addEventListener("change", () => fetchSlotStatus(dateInput.value));
+    fetchSlotStatus(todayStr);
+  }
+});
+
+// ==========================================
+// ✅ MODAL THÀNH CÔNG
+// ==========================================
+function showSuccessDialog(lang) {
+  const modal      = document.getElementById("success-modal");
+  const confirmBtn = document.getElementById("confirm-btn");
+  const countdownEl = document.getElementById("countdown");
+
+  if (!modal || !confirmBtn) {
+    alert("Đăng ký thành công!");
+    window.location.href = `index.html?lang=${lang}`;
+    return;
+  }
+
+  modal.classList.add("show");
   let count = 4;
+
   const timer = setInterval(() => {
     count--;
-    if (countdown) countdown.textContent = count;
+    if (countdownEl) countdownEl.textContent = count;
     if (count <= 0) {
       clearInterval(timer);
-      window.location.href = 'index.html';
+      window.location.href = `index.html?lang=${lang}`;
     }
   }, 1000);
 
-  const confirmBtn = document.getElementById('confirm-btn');
-  if (confirmBtn) {
-    confirmBtn.onclick = () => {
-      clearInterval(timer);
-      window.location.href = 'index.html';
-    };
-  }
+  confirmBtn.onclick = () => {
+    clearInterval(timer);
+    window.location.href = `index.html?lang=${lang}`;
+  };
 }
-
-// ==========================================
-// ⚠️ ALERT (dùng thay window.alert gốc)
-// ==========================================
-function showAlert(msg) {
-  alert(msg); // Có thể thay bằng custom modal sau
-}
-
-// ==========================================
-// 📝 FORM: KHÁCH (khach.html)
-// ==========================================
-function initKhachForm() {
-  const form = document.getElementById('form-khach');
-  if (!form) return;
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await submitForm(form, 'khach');
-  });
-}
-
-// ==========================================
-// 🏢 FORM: ĐẠI LÝ (daily.html)
-// ==========================================
-function initDailyForm() {
-  const form = document.getElementById('form-daily');
-  if (!form) return;
-
-  // Dropdown đại lý
-  initAgencyDropdown();
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await submitForm(form, 'daily');
-  });
-}
-
-function initAgencyDropdown() {
-  const agencies = [
-    "THE ONE REAL ESTATE",
-    "REVER",
-    "REALPLUS",
-    "QS LAND",
-    "INDOCHINE",
-    "ERA VIỆT NAM",
-    "STHOME & LỘC PHÁT HƯNG",
-    "BÁCH NHƯ",
-    "DOUBLE LAND",
-    "GENIE PROPERTY & LINH HOMES",
-    "KZEN HOLDINGS",
-    "THẾ GIỚI ĐẤT VIỆT",
-    "SGROUP & BAM LAND",
-    "KIM OANH REALTY",
-    "KHÁC",
-  ];
-
-  const header         = document.getElementById('agencyHeader');
-  const dropdown       = document.getElementById('agencyDropdown');
-  const listContainer  = document.getElementById('agencyList');
-  const selectedText   = document.getElementById('selectedAgencyText');
-  const agencyValue    = document.getElementById('agencyValue');
-  const extraContainer = document.getElementById('extraInputContainer');
-
-  if (!header || !listContainer) return;
-
-  // Xóa các item cũ nếu có (tránh duplicate)
-  listContainer.innerHTML = '';
-
-  agencies.forEach(agency => {
-    const item       = document.createElement('div');
-    item.className   = 'dropdownItem';
-    item.innerText   = agency;
-    item.addEventListener('click', () => {
-      selectedText.innerText       = agency;
-      selectedText.style.color     = '#ffffff';
-      agencyValue.value            = agency;
-      dropdown.style.display       = 'none';
-      extraContainer.style.display = agency.includes('KHÁC') ? 'block' : 'none';
-    });
-    listContainer.appendChild(item);
-  });
-
-  header.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-  });
-
-  window.addEventListener('click', () => {
-    dropdown.style.display = 'none';
-  });
-}
-
-// ==========================================
-// 🤝 FORM: ĐỐI TÁC (doitac.html)
-// ==========================================
-function initDoitacForm() {
-  const form = document.getElementById('form-doitac');
-  if (!form) return;
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await submitForm(form, 'doitac');
-  });
-}
-
-// ==========================================
-// 🚀 KHỞI ĐỘNG
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-  applyLanguage();
-  initDatePicker();
-  initTimeDropdown();
-  initKhachForm();
-  initDailyForm();
-  initDoitacForm();
-});
