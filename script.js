@@ -10,10 +10,10 @@ const APPSSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwNPeNr19fJr7hp
 
 const LOCK_CONFIG = {
 
-  "2026-06-07": ["09:00-10:30", "10:30-12:00"],
+  "2026-04-26": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
   "2026-04-27": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
-  "2026-04-28": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
-  "2026-04-29": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  // "2026-04-28": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-29": [ "14:30-16:00"],
   "2026-04-30": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
   "2026-05-01": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
   "2026-04-23": ["13:00-14:30", "14:30-16:00"],
@@ -374,6 +374,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const todayStr = now.toISOString().split("T")[0];
     const maxDate  = new Date();
     maxDate.setDate(now.getDate() + 2);
+
     const maxStr = maxDate.toISOString().split("T")[0];
 
     dateInput.value = todayStr;
@@ -381,9 +382,51 @@ window.addEventListener("DOMContentLoaded", () => {
     dateInput.max   = maxStr;
 
     dateInput.addEventListener("change", () => fetchSlotStatus(dateInput.value));
+
+
+
+
     fetchSlotStatus(todayStr);
+
   }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ==========================================
 // ✅ MODAL THÀNH CÔNG
