@@ -373,7 +373,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const now      = new Date();
     const todayStr = now.toISOString().split("T")[0];
     const maxDate  = new Date();
-    maxDate.setDate(now.getDate() + 2);
+    maxDate.setDate(now.getDate() + 10);
 
     const maxStr = maxDate.toISOString().split("T")[0];
 
