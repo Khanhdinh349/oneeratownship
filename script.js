@@ -9,12 +9,13 @@ const SECRET_TOKEN             = 'OE_2026_SECURE'; // ✅ FIX #1: phải gửi t
 const APPSSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwNPeNr19fJr7hpO57m222AtX9cGisM0SVQydmofrd0RmoiDS7K4eGz6TVJYnz908YuQ/exec";
 
 const LOCK_CONFIG = {
-  "2026-04-26": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
-  "2026-04-27": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
-  // "2026-04-28": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
-  "2026-04-29": [ "14:30-16:00"],
-  "2026-04-30": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+
   "2026-06-07": ["09:00-10:30", "10:30-12:00"],
+  "2026-04-27": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-28": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-29": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-04-30": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
+  "2026-05-01": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
   "2026-04-23": ["13:00-14:30", "14:30-16:00"],
   "2026-04-24": ["09:00-10:30", "10:30-12:00", "13:00-14:30", "14:30-16:00"],
 };
@@ -90,7 +91,7 @@ function fetchSlotStatus(dateStr) {
     .then(res => res.json())
     .then(data => {
       if (data.result === "success") {
-        lastSlotData = data.slots;         // ✅ FIX #2: lưu số người
+        lastSlotData = data.slots;        // ✅ FIX #2: lưu số người
         lastRegData  = data.registrations; // ✅ FIX #2: lưu số lượt
         updateTimeOptions(data);
       }
@@ -100,10 +101,10 @@ function fetchSlotStatus(dateStr) {
 
 // ✅ FIX #3: Khoá slot dựa trên CẢ HAI điều kiện — số lượt và số người
 function updateTimeOptions(slotData) {
-  const timeMenu         = document.getElementById("visitTimeMenu");
-  const timeValue        = document.getElementById("visitTime");
+  const timeMenu        = document.getElementById("visitTimeMenu");
+  const timeValue       = document.getElementById("visitTime");
   const selectedTimeText = document.getElementById("selectedTimeText");
-  const selectedDate     = document.getElementById("visitDate")?.value;
+  const selectedDate    = document.getElementById("visitDate")?.value;
 
   if (!timeMenu || !slotData?.slots) return;
 
@@ -116,8 +117,8 @@ function updateTimeOptions(slotData) {
 
     const meta        = TIME_SLOTS.find(s => s.value === val);
     const baseLabel   = meta ? meta.labelVi : val;
-    const peopleCount = slotData.slots[val]          || 0;
-    const regCount    = slotData.registrations?.[val] || 0;
+    const peopleCount = (slotData.slots[val]        || 0);
+    const regCount    = (slotData.registrations?.[val] || 0);
 
     // Reset
     item.style.opacity       = "";
@@ -163,16 +164,16 @@ function _disableItem(item, label, timeValue, selectedTimeText, val) {
 }
 
 function closePopup() {
-  const popup = document.getElementById('holidayPopup');
-  popup.style.display = 'none';
+    const popup = document.getElementById('holidayPopup');
+    popup.style.display = 'none';
 }
 
 // Tùy chọn: Đóng khi click ra ngoài vùng ảnh
 window.addEventListener('click', function(event) {
-  const popup = document.getElementById('holidayPopup');
-  if (event.target == popup) {
-    closePopup();
-  }
+    const popup = document.getElementById('holidayPopup');
+    if (event.target == popup) {
+        closePopup();
+    }
 });
 
 // ==========================================
@@ -234,8 +235,8 @@ function collectFormData(formId) {
 
 document.addEventListener("submit", e => {
   e.preventDefault();
-  const lang      = getLang();
-  const formId    = e.target.id;
+  const lang     = getLang();
+  const formId   = e.target.id;
   const submitBtn = e.target.querySelector('button[type="submit"]');
 
   if (!formId.startsWith("form-") || !submitBtn) return;
@@ -353,7 +354,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (item.style.pointerEvents === "none") return;
         const val = item.getAttribute("data-value");
         if (!val) return;
-        if (timeHidden)       timeHidden.value            = val;
+        if (timeHidden)       timeHidden.value           = val;
         if (selectedTimeText) selectedTimeText.textContent = item.textContent;
         timeMenu.classList.remove("show");
         timeBox.querySelector(".chevron")?.classList.remove("rotate");
@@ -372,67 +373,24 @@ window.addEventListener("DOMContentLoaded", () => {
     const now      = new Date();
     const todayStr = now.toISOString().split("T")[0];
     const maxDate  = new Date();
-    maxDate.setDate(now.getDate() + 10); // ✅ CẬP NHẬT: cho phép chọn đến 10 ngày tới
-
+    maxDate.setDate(now.getDate() + 2);
     const maxStr = maxDate.toISOString().split("T")[0];
 
     dateInput.value = todayStr;
     dateInput.min   = todayStr;
     dateInput.max   = maxStr;
 
-    dateInput.addEventListener("change", () => {
-      fetchSlotStatus(dateInput.value);
-      autoSelectTimeSlot(dateInput.value); // ✅ CẬP NHẬT: tự chọn khung giờ khi đổi ngày
-    });
-
+    dateInput.addEventListener("change", () => fetchSlotStatus(dateInput.value));
     fetchSlotStatus(todayStr);
-    autoSelectTimeSlot(todayStr); // ✅ CẬP NHẬT: tự chọn khung giờ khi load trang
   }
 });
-
-// ==========================================
-// ✅ TỰ ĐỘNG CHỌN KHUNG GIỜ KẾ TIẾP
-// ==========================================
-function autoSelectTimeSlot(dateStr) {
-  const timeHidden       = document.getElementById("visitTime");
-  const selectedTimeText = document.getElementById("selectedTimeText");
-  const timeMenu         = document.getElementById("visitTimeMenu");
-  if (!timeHidden || !selectedTimeText || !timeMenu) return;
-
-  const now      = new Date();
-  const todayStr = now.toISOString().split("T")[0];
-
-  // Chỉ tự chọn nếu đang xem ngày hôm nay;
-  // ngày tương lai để người dùng tự chọn
-  if (dateStr !== todayStr) return;
-
-  // Giờ hiện tại tính bằng phút kể từ 00:00
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-  // Tìm slot đầu tiên chưa qua và chưa bị khoá thủ công
-  const slot = TIME_SLOTS.find(s => {
-    if (isSlotLocked(dateStr, s.value)) return false;
-    const endPart = s.value.split("-")[1]; // vd: "10:30"
-    const [h, m]  = endPart.split(":").map(Number);
-    // Còn hợp lệ nếu giờ kết thúc vẫn lớn hơn giờ hiện tại
-    return (h * 60 + m) > nowMinutes;
-  });
-
-  if (!slot) return; // tất cả khung giờ trong ngày đã qua, không tự chọn
-
-  // Áp dụng vào hidden input và text hiển thị
-  timeHidden.value = slot.value;
-
-  const item = timeMenu.querySelector(`.menu-item[data-value="${slot.value}"]`);
-  selectedTimeText.textContent = item ? item.textContent : slot.labelVi;
-}
 
 // ==========================================
 // ✅ MODAL THÀNH CÔNG
 // ==========================================
 function showSuccessDialog(lang) {
-  const modal       = document.getElementById("success-modal");
-  const confirmBtn  = document.getElementById("confirm-btn");
+  const modal      = document.getElementById("success-modal");
+  const confirmBtn = document.getElementById("confirm-btn");
   const countdownEl = document.getElementById("countdown");
 
   if (!modal || !confirmBtn) {
