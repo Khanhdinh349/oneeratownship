@@ -6,7 +6,22 @@ const MAX_PER_REGISTRATION     = 10;   // Tối đa 10 người / lần đăng k
 const MAX_REGISTRATIONS_PER_SLOT = 3; // Tối đa 3 lượt đăng ký / khung giờ
 const SECRET_TOKEN             = 'OE_2026_SECURE'; // ✅ FIX #1: phải gửi token
 
-const APPSSCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwNPeNr19fJr7hpO57m222AtX9cGisM0SVQydmofrd0RmoiDS7K4eGz6TVJYnz908YuQ/exec";
+// ==========================================
+// 🏢 URL THEO VĂN PHÒNG
+// ==========================================
+const OFFICE_URLS = {
+  hcm:       "https://script.google.com/macros/s/AKfycbzwNPeNr19fJr7hpO57m222AtX9cGisM0SVQydmofrd0RmoiDS7K4eGz6TVJYnz908YuQ/exec",
+  binhduong: "https://script.google.com/macros/s/AKfycbyaWMmp1Hh7teSrtSGaorxOxOj0McefuQJ4maH71gfv0dUG3rCLbeL7z4lwYC1uizDg/exec",
+};
+
+// Đọc office từ URL param (?office=hcm | ?office=binhduong), mặc định hcm
+function getOffice() {
+  return new URLSearchParams(window.location.search).get("office") || "hcm";
+}
+
+function getApiUrl() {
+  return OFFICE_URLS[getOffice()] || OFFICE_URLS.hcm;
+}
 
 const LOCK_CONFIG = {
 
@@ -87,7 +102,7 @@ function translateForm(lang) {
 // ==========================================
 function fetchSlotStatus(dateStr) {
   if (!dateStr) return;
-  fetch(`${APPSSCRIPT_URL}?action=getSlots&date=${dateStr}`)
+  fetch(`${getApiUrl()}?action=getSlots&date=${dateStr}`)
     .then(res => res.json())
     .then(data => {
       if (data.result === "success") {
@@ -286,7 +301,7 @@ document.addEventListener("submit", e => {
   // 5. Gửi lên server
   setLoadingState(submitBtn, true, lang);
 
-  fetch(APPSSCRIPT_URL, {
+  fetch(getApiUrl(), {
     method: "POST",
     body: JSON.stringify(formData),
   })
@@ -390,44 +405,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // ==========================================
 // ✅ MODAL THÀNH CÔNG
 // ==========================================
