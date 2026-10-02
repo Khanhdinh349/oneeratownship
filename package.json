@@ -1,0 +1,25 @@
+{
+  "name": "kinera-registration",
+  "version": "1.0.0",
+  "description": "KINERA Visitor Registration & Reception Management System",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test \"tests/*.test.js\"",
+    "setup-db": "node scripts/setup-database.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^4.22.3",
+    "pg": "^8.23.1",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
