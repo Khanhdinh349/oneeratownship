@@ -1,7 +1,0 @@
-# Nothing here belongs in a deployment.
-node_modules
-data
-tests
-scripts
-.DS_Store
-*.log

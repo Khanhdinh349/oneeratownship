@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ONE ERA | Welcome</title>
+        <link rel="icon" type="image/png" href="images/icon.png" />
+        <link rel="stylesheet" href="style.css">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <div class="glass-container animate-fade-in">
+            <img src="images/logo-one-era.png" alt="One Era" class="form-logo">
+
+            <div class="header-text">
+                <h2>
+                    <span class="subtitle" data-vi="Thành phố" data-en="The City of">Thành phố</span>
+                    <span class="main-title" data-vi="VẠN TIỀM NĂNG" data-en="ENDLESS POSSIBILITIES">VẠN TIỀM NĂNG</span>
+                </h2>
+                <div class="divider"></div>
+            </div>
+
+            <div class="selection-wrapper">
+                <div class="input-group">
+                    <span class="label">Ngôn ngữ / Language</span>
+                    <div class="custom-select-box" id="langBox">
+                        <span id="selectedLangText">TIẾNG VIỆT</span>
+                        <svg class="chevron" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2" fill="none" /></svg>
+                    </div>
+                    <div class="custom-menu" id="langMenu">
+                        <div class="menu-item" onclick="selectLang('vi', 'TIẾNG VIỆT')">Tiếng Việt</div>
+                        <div class="menu-item" onclick="selectLang('en', 'English')">English</div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <span class="label" data-vi="Chọn văn phòng..." data-en="Select Office...">Chọn văn phòng...</span>
+                    <div class="custom-select-box" id="officeBox">
+                        <span id="selectedOfficeText" data-vi="-- CHỌN VĂN PHÒNG --" data-en="-- SELECT OFFICE --">-- CHỌN VĂN PHÒNG --</span>
+                        <svg class="chevron" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2" fill="none" /></svg>
+                    </div>
+                    <div class="custom-menu" id="officeMenu">
+                        <div class="menu-item" onclick="selectOffice('hcm')" data-vi="Sales Gallery - CII, Bình Thạnh" data-en="Sales Gallery - CII, Binh Thanh">Sales Gallery - CII, Bình Thạnh</div>
+                        <div class="menu-item" onclick="selectOffice('binhduong')" data-vi="Sales Gallery - Thuận Giao" data-en="Sales Gallery - Thuan Giao">Sales Gallery - Thuận Giao</div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <span class="label" data-vi="Bạn là... / I am..." data-en="I am...">Bạn là... / I am...</span>
+                    <div class="custom-select-box" id="roleBox">
+                        <span id="selectedRoleText" data-vi="-- CHỌN VAI TRÒ --" data-en="-- SELECT ROLE --">-- CHỌN VAI TRÒ --</span>
+                        <svg class="chevron" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" stroke="currentColor" stroke-width="2" fill="none" /></svg>
+                    </div>
+                    <div class="custom-menu" id="roleMenu">
+                        <div class="menu-item" onclick="selectRole('khach')" data-vi="Khách tham quan" data-en="Visitor">Khách tham quan</div>
+                        <div class="menu-item" onclick="selectRole('daily')" data-vi="Đại lý" data-en="Agency">Đại lý</div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="btnContinue" class="btn-primary disabled" onclick="handleContinue()" data-vi="TIẾP TỤC" data-en="CONTINUE">TIẾP TỤC</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        let currentLang = 'vi';
+        let currentOffice = '';
+        let currentRole = '';
+
+        // Hàm đóng tất cả các menu đang mở và reset trạng thái xoay mũi tên
+        function closeAllMenus() {
+            document.querySelectorAll('.custom-menu').forEach(m => m.classList.remove('show'));
+            document.querySelectorAll('.chevron').forEach(c => c.classList.remove('rotate'));
+        }
+
+        // Đóng menu khi click ra ngoài vùng chọn
+        window.onclick = function(event) {
+            if (!event.target.closest('.input-group')) {
+                closeAllMenus();
+            }
+        }
+
+        // Xử lý Toggle cho từng Box (Đã thêm officeBox)
+        document.getElementById('langBox').onclick = (e) => {
+            e.stopPropagation();
+            toggleMenu('langMenu', 'langBox');
+        };
+
+        document.getElementById('officeBox').onclick = (e) => {
+            e.stopPropagation();
+            toggleMenu('officeMenu', 'officeBox');
+        };
+        
+        document.getElementById('roleBox').onclick = (e) => {
+            e.stopPropagation();
+            toggleMenu('roleMenu', 'roleBox');
+        };
+
+        function toggleMenu(menuId, boxId) {
+            const menu = document.getElementById(menuId);
+            const chevron = document.getElementById(boxId).querySelector('.chevron');
+            const isOpen = menu.classList.contains('show');
+            
+            // Đóng các menu khác trước khi mở cái mới
+            closeAllMenus();
+
+            if (!isOpen) {
+                menu.classList.add('show');
+                chevron.classList.add('rotate');
+            }
+        }
+
+        // Chọn Ngôn ngữ và cập nhật giao diện ngay
+        function selectLang(lang, text) {
+            currentLang = lang;
+            document.getElementById('selectedLangText').innerText = text;
+            closeAllMenus();
+            updateLanguageUI();
+        }
+
+        // Chọn Văn phòng
+        function selectOffice(office) {
+            currentOffice = office;
+            const item = document.querySelector(`#officeMenu .menu-item[onclick="selectOffice('${office}')"]`);
+            document.getElementById('selectedOfficeText').innerText = item.getAttribute(`data-${currentLang}`);
+            checkFormValidity();
+            closeAllMenus();
+        }
+
+        // Chọn Vai trò
+        function selectRole(role) {
+            currentRole = role;
+            const item = document.querySelector(`#roleMenu .menu-item[onclick="selectRole('${role}')"]`);
+            document.getElementById('selectedRoleText').innerText = item.getAttribute(`data-${currentLang}`);
+            checkFormValidity();
+            closeAllMenus();
+        }
+
+        // Kiểm tra điều kiện mở khóa nút TIẾP TỤC (Khi chọn đủ cả văn phòng và vai trò)
+        function checkFormValidity() {
+            if (currentOffice && currentRole) {
+                document.getElementById('btnContinue').classList.remove('disabled');
+            } else {
+                document.getElementById('btnContinue').classList.add('disabled');
+            }
+        }
+
+        // Cập nhật dịch thuật real-time
+        function updateLanguageUI() {
+            document.querySelectorAll('[data-vi]').forEach(el => {
+                // Tránh ghi đè text hiển thị của các nút chọn nếu đã có giá trị người dùng chọn
+                if (el.id === 'selectedOfficeText' && !currentOffice) {
+                    el.innerText = el.getAttribute(`data-${currentLang}`);
+                    return;
+                }
+                if (el.id === 'selectedRoleText' && !currentRole) {
+                    el.innerText = el.getAttribute(`data-${currentLang}`);
+                    return;
+                }
+                if (el.id !== 'selectedOfficeText' && el.id !== 'selectedRoleText') {
+                    el.innerText = el.getAttribute(`data-${currentLang}`);
+                }
+            });
+            
+            // Cập nhật text đã chọn theo ngôn ngữ mới
+            if (currentOffice) {
+                const activeOfficeItem = document.querySelector(`#officeMenu .menu-item[onclick="selectOffice('${currentOffice}')"]`);
+                document.getElementById('selectedOfficeText').innerText = activeOfficeItem.getAttribute(`data-${currentLang}`);
+            }
+            if (currentRole) {
+                const activeRoleItem = document.querySelector(`#roleMenu .menu-item[onclick="selectRole('${currentRole}')"]`);
+                document.getElementById('selectedRoleText').innerText = activeRoleItem.getAttribute(`data-${currentLang}`);
+            }
+        }
+
+        function handleContinue() {
+            if (!currentRole || !currentOffice) return;
+            // Gửi kèm tham số văn phòng qua URL trang tiếp theo
+            window.location.href = `${currentRole}.html?lang=${currentLang}&office=${currentOffice}`;
+        }
+    </script>
+    </body>
+</html>

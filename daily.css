@@ -1,0 +1,214 @@
+/* Ghi đè lại body để hiện Background */
+body {
+  margin: 0;
+  padding: 20px;
+  min-height: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: url("images/one-era-kinera-1536x675.jpg") center/cover fixed no-repeat !important;
+}
+
+.glassContainer {
+  background: rgba(15, 23, 42, 0.75); /* Độ trong suốt tối ưu cho Glassmorphism */
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 40px;
+  padding: 3rem;
+  width: 100%;
+  max-width: 900px;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.8s ease-out;
+  max-height: none; /* Bỏ giới hạn chiều cao nếu có */
+  margin: 20px 0;
+}
+
+.form-logo-small {
+  width: 120px;
+  filter: drop-shadow(0 0 10px rgba(247, 149, 82, 0.2));
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 900;
+  text-align: center;
+  color: var(--color-sunset);
+  margin-bottom: 2.5rem;
+  text-transform: uppercase;
+  text-shadow: 0 4px 15px rgba(247, 149, 82, 0.2);
+}
+
+.backBtn {
+  cursor: pointer;
+  color: var(--color-lavender);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: 0.3s;
+}
+
+.backBtn:hover { color: #fff; transform: translateX(-5px); }
+
+.label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--color-lavender);
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+}
+
+.regInput, .customSelectHeader {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 12px;
+  color: white;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.regInput:focus, .customSelectHeader:hover {
+  border-color: var(--color-sunset);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dropdownList {
+  position: absolute;
+  top: 105%; left: 0; width: 100%;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(247, 149, 82, 0.3);
+  border-radius: 15px;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.scrollArea { max-height: 250px; overflow-y: auto; }
+
+.dropdownItem {
+  padding: 12px 20px;
+  color: var(--color-lavender);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.dropdownItem:hover { background: var(--color-sunset); color: white; }
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.subSelectionArea {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 254, 254, 0.05);
+  border-radius: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1.5fr;
+  gap: 1rem;
+}
+
+.btnSubmit {
+  width: 100%;
+  padding: 1.2rem;
+  background: linear-gradient(135deg, var(--color-sunset), #e67e35);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-weight: 900;
+  margin-top: 2rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 0 15px 30px rgba(247, 149, 82, 0.3);
+}
+
+.regInputExtra {
+  width: 100%;
+  background: rgba(247, 149, 82, 0.1);
+  border: 1px dashed var(--color-sunset);
+  padding: 1rem;
+  border-radius: 12px;
+  color: white;
+  margin-top: 10px;
+}
+
+/* SUCCESS MODAL */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.modal-overlay.show { display: flex; opacity: 1; }
+
+.modal-content {
+  background: var(--bg-dark);
+  border: 1px solid var(--color-sunset);
+  padding: 3rem;
+  border-radius: 40px;
+  text-align: center;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 0 50px rgba(247, 149, 82, 0.2);
+  transform: scale(0.8);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-overlay.show .modal-content { transform: scale(1); }
+
+.modal-logo {
+  width: 150px;
+  margin-bottom: 1.5rem;
+}
+
+#modal-title {
+  color: var(--color-sunset);
+  font-size: 24px;
+  font-weight: 900;
+  margin-bottom: 1rem;
+}
+
+#modal-message {
+  color: var(--color-lavender);
+  font-size: 14px;
+  margin-bottom: 2rem;
+}
+
+#confirm-btn {
+  background: var(--color-sunset);
+  color: white;
+  border: none;
+  padding: 1rem 3rem;
+  border-radius: 50px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 800px) {
+    body {
+    align-items: flex-start; /* Đẩy form lên đầu trang để dễ cuộn */
+  }
+  .formGrid, .subSelectionArea { grid-template-columns: 1fr; }
+  .glassContainer { padding: 2rem 1.5rem; }
+}
+
+html, body {
+    height: auto !important;
+    overflow: auto !important;
+}
