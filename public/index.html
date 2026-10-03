@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ONE ERA | Đăng ký tham quan</title>
+<link rel="icon" type="image/png" href="/images/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="on-backdrop">
+
+<main class="glass glass--form" id="page">
+
+  <img src="/images/logo-one-era.png" alt="ONE ERA" class="brand-logo">
+
+  <div class="center" style="margin-bottom:2rem">
+    <span class="subtitle" data-i18n="brand.eyebrow">Thành phố</span>
+    <span class="main-title" data-i18n="brand.title">Vạn tiềm năng</span>
+    <div class="divider"></div>
+    <button type="button" class="btn btn--ghost btn--sm guide-open" id="guide-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 014.7 1.1c0 1.7-2.3 2-2.3 3.4"/>
+        <line x1="12" y1="17" x2="12" y2="17"/></svg>
+      <span data-i18n="guide.open">Hướng dẫn</span>
+    </button>
+  </div>
+
+  <div id="global-notice" class="notice notice--danger hidden" role="alert"></div>
+
+  <!-- ===== language · office · role — all on this page (§III, §IV, §V) ===== -->
+  <div class="select-row">
+    <div class="field" data-field="language">
+      <label for="sel-language">Ngôn ngữ / Language</label>
+      <select id="sel-language" class="select--strong">
+        <option value="vi">TIẾNG VIỆT</option>
+        <option value="en">ENGLISH</option>
+      </select>
+      <div class="field__error" data-error-for="language"></div>
+    </div>
+
+    <div class="field" data-field="salesOfficeId">
+      <label for="sel-office"><span data-i18n="office.heading"></span><span class="field__req"> *</span></label>
+      <select id="sel-office" class="select--strong"></select>
+      <div class="field__help" id="office-detail"></div>
+      <div class="field__error" data-error-for="salesOfficeId"></div>
+    </div>
+
+    <div class="field" data-field="visitorType">
+      <label for="sel-type"><span data-i18n="type.heading"></span><span class="field__req"> *</span></label>
+      <select id="sel-type" class="select--strong"></select>
+      <div class="field__help" id="type-detail"></div>
+      <div class="field__error" data-error-for="visitorType"></div>
+    </div>
+  </div>
+
+  <!-- ===== the chosen role's registration form, revealed in place ===== -->
+  <section id="role-form" class="role-form hidden">
+    <h1 class="form-title" id="form-title"></h1>
+
+    <form id="registration-form" novalidate>
+      <!-- role-specific fields (§VI for a visitor, §XI–§XIII for an agency) -->
+      <div id="role-fields"></div>
+
+      <!-- §VII · §VIII · quantity, date and time slot, grouped as one panel -->
+      <div class="visit-panel">
+        <div class="field" data-field="numberOfVisitors">
+          <label for="f-numberOfVisitors"><span data-i18n="f.guests"></span><span class="field__req"> *</span></label>
+          <input id="f-numberOfVisitors" name="numberOfVisitors" type="number" inputmode="numeric" min="1" value="1">
+          <div class="field__error" data-error-for="numberOfVisitors"></div>
+        </div>
+
+        <div class="field" data-field="visitDate">
+          <label for="f-visitDate"><span data-i18n="visit.dateLabel"></span><span class="field__req"> *</span></label>
+          <input id="f-visitDate" name="visitDate" type="date">
+          <div class="field__error" data-error-for="visitDate"></div>
+        </div>
+
+        <div class="field" data-field="timeSlotId">
+          <label for="f-timeSlot"><span data-i18n="visit.slotLabel"></span><span class="field__req"> *</span></label>
+          <select id="f-timeSlot" name="timeSlotId"></select>
+          <div class="field__error" data-error-for="timeSlotId"></div>
+        </div>
+      </div>
+      <div class="field__help" id="visit-window"></div>
+
+      <div class="field" data-field="notes" style="margin-top:1.35rem">
+        <label for="notes"><span data-i18n="f.notes"></span> <span class="field__opt" data-i18n="f.optional"></span></label>
+        <textarea id="notes" name="notes" rows="3" maxlength="500"></textarea>
+        <div class="field__error" data-error-for="notes"></div>
+      </div>
+
+      <button type="submit" class="btn btn--accent btn--block btn--lg" id="submit-btn"></button>
+    </form>
+  </section>
+</main>
+
+<!-- ===== success (§XIX) ===== -->
+<div class="modal-overlay" id="success-modal" role="dialog" aria-modal="true" aria-labelledby="success-title">
+  <div class="modal-content modal-content--wide center">
+    <img src="/images/logo-one-era.png" alt="ONE ERA" class="modal-logo">
+    <h3 class="modal-title" id="success-title" data-i18n="success.title"></h3>
+    <p class="modal-sub" data-i18n="success.lead"></p>
+
+    <div class="section-title center" data-i18n="success.codeLabel"></div>
+    <div class="success__code mono" id="success-code"></div>
+
+    <div class="success__qr"><img id="success-qr" alt="QR" width="200" height="200"></div>
+
+    <div class="review" id="success-summary" style="text-align:left;margin-top:1.25rem"></div>
+    <div class="field__help" id="success-office" style="text-align:left;margin-top:.75rem"></div>
+    <p class="modal-sub" style="margin-top:1rem" data-i18n="success.instruction"></p>
+
+    <div class="actions no-print" style="flex-direction:column">
+      <button type="button" class="btn btn--primary btn--block" id="go-home" data-i18n="success.home"></button>
+      <div style="display:flex;gap:.7rem">
+        <button type="button" class="btn btn--ghost" id="qr-download" data-i18n="success.download"></button>
+        <button type="button" class="btn btn--ghost" id="qr-print" data-i18n="success.print"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== visitor guidelines (§III — in whichever language is selected) ===== -->
+<div class="modal-overlay" id="guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+  <div class="modal-content modal-content--wide">
+    <h3 class="modal-title center" id="guide-title" data-i18n="guide.title"></h3>
+    <p class="modal-sub center" data-i18n="guide.lead"></p>
+
+    <div class="section-title" data-i18n="guide.stepsTitle"></div>
+    <ol class="guide-steps" id="guide-steps"></ol>
+
+    <div class="section-title" data-i18n="guide.notesTitle"></div>
+    <ul class="guide-notes" id="guide-notes"></ul>
+
+    <div class="actions" style="margin-top:1.4rem">
+      <button type="button" class="btn btn--primary btn--block" id="guide-close"
+              data-i18n="guide.close"></button>
+    </div>
+  </div>
+</div>
+
+<!-- staff shortcut, as on the existing ONE ERA landing page -->
+<a href="/staff.html" id="staff-access" title="Lễ tân / Staff"
+   style="position:fixed;bottom:20px;right:20px;width:52px;height:52px;border-radius:50%;
+          background:var(--color-sky);display:flex;align-items:center;justify-content:center;
+          box-shadow:0 10px 25px rgba(93,169,221,.4);z-index:500;text-decoration:none">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect>
+    <rect x="3" y="14" width="7" height="7"></rect>
+    <line x1="14" y1="14" x2="14" y2="21"></line><line x1="21" y1="14" x2="21" y2="21"></line>
+    <line x1="14" y1="17.5" x2="21" y2="17.5"></line>
+  </svg>
+</a>
+
+<script src="/js/i18n.js"></script>
+<script src="/js/register.js"></script>
+</body>
+</html>
