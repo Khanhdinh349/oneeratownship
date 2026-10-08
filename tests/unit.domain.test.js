@@ -8,7 +8,8 @@ const codes = require('../src/domain/codes');
 const status = require('../src/domain/status');
 const validation = require('../src/domain/validation');
 const permissions = require('../src/domain/permissions');
-const { ROLES, TIME_SLOTS, SALES_OFFICES, MAX_ADVANCE_DAYS, SLOT_CAPACITY } = require('../src/config/master-data');
+const { ROLES, TIME_SLOTS, SALES_OFFICES, MAX_ADVANCE_DAYS, SLOT_CAPACITY,
+  GUEST_CATEGORIES, GUEST_CATEGORY_IDS } = require('../src/config/master-data');
 
 // ===========================================================================
 // §VII / §XIV / §XLI Process 5 — the 10-day booking window
@@ -226,7 +227,7 @@ test('§VI a fully valid visitor payload produces no errors', () => {
   const { value, errors } = validation.validateRegistrationInput({
     language: 'vi', salesOfficeId: 'CII_BINH_THANH', visitorType: 'VISITOR',
     fullName: 'Nguyễn Văn A', cccd: '012345678901', phone: '0901234567',
-    email: 'A@Example.COM', numberOfVisitors: 3,
+    email: 'A@Example.COM', numberOfVisitors: 3, guestCategory: 'CUSTOMER',
     visitDate: '2026-10-05', timeSlotId: 'SLOT_0900_1030', notes: 'ok',
   }, CTX);
   assert.deepEqual(errors, []);
@@ -293,7 +294,7 @@ test('§VI missing required visitor fields are all reported at once', () => {
     visitDate: '2026-10-05', timeSlotId: 'SLOT_0900_1030',
   }, CTX);
   const fields = errors.map((e) => e.field).sort();
-  assert.deepEqual(fields, ['cccd', 'fullName', 'numberOfVisitors', 'phone']);
+  assert.deepEqual(fields, ['cccd', 'fullName', 'guestCategory', 'numberOfVisitors', 'phone']);
 });
 
 test('§XIII.2 customer phone accepts exactly 4 digits and nothing else', () => {
@@ -310,7 +311,8 @@ test('§XI–§XIII a fully valid agency payload produces no errors and resolves
     language: 'en', salesOfficeId: 'THUAN_GIAO_BINH_DUONG', visitorType: 'AGENCY',
     agencyId: 'AG_IQI', salesStaffName: 'Nguyễn Văn B', salesStaffCccd: '098765432109',
     salesStaffPhone: '0912345678', customerShortName: 'N.V.C', customerPhoneLast4: '4321',
-    numberOfVisitors: 5, visitDate: '2026-10-06', timeSlotId: 'SLOT_1030_1200',
+    numberOfVisitors: 5, guestCategory: 'SALES_PARTNER',
+    visitDate: '2026-10-06', timeSlotId: 'SLOT_1030_1200',
   }, CTX);
   assert.deepEqual(errors, []);
   assert.equal(value.agencyName, 'IQI', 'agency name resolved from master data');
@@ -323,7 +325,7 @@ test('§XI–§XIII missing required agency fields are all reported', () => {
     numberOfVisitors: 2, visitDate: '2026-10-06', timeSlotId: 'SLOT_1030_1200',
   }, CTX);
   assert.deepEqual(errors.map((e) => e.field).sort(), [
-    'agencyId', 'customerPhoneLast4', 'customerShortName',
+    'agencyId', 'customerPhoneLast4', 'customerShortName', 'guestCategory',
     'salesStaffCccd', 'salesStaffName', 'salesStaffPhone',
   ]);
 });
@@ -444,11 +446,13 @@ test('§XLVI.2 exactly two sales offices exist, and only CII tracks parking tick
 
 test('§XXXIX receptionist can check in but cannot see the dashboard or manage users', () => {
   const u = { role: ROLES.RECEPTIONIST, salesOfficeId: 'CII_BINH_THANH' };
+  // Reception now also registers walk-ins at the desk and corrects a check-in it
+  // got wrong, so both are theirs as well.
   for (const p of ['registration:view', 'registration:search', 'qr:scan', 'checkin:perform',
-    'status:update', 'parking:update', 'calendar:view']) {
+    'checkin:amend', 'registration:create', 'status:update', 'parking:update', 'calendar:view']) {
     assert.equal(permissions.can(u, p), true, p);
   }
-  for (const p of ['dashboard:view', 'reports:view', 'user:manage', 'masterdata:manage', 'registration:create']) {
+  for (const p of ['dashboard:view', 'reports:view', 'user:manage', 'masterdata:manage']) {
     assert.equal(permissions.can(u, p), false, p);
   }
 });
@@ -457,6 +461,8 @@ test('§XXXIX sales can create registrations but cannot check in', () => {
   const u = { role: ROLES.SALES, salesOfficeId: 'CII_BINH_THANH' };
   assert.equal(permissions.can(u, 'registration:create'), true);
   assert.equal(permissions.can(u, 'checkin:perform'), false);
+  assert.equal(permissions.can(u, 'checkin:amend'), false,
+    'correcting a check-in belongs to the desk that made it');
   assert.equal(permissions.can(u, 'parking:update'), false);
   assert.equal(permissions.can(u, 'dashboard:view'), false);
 });
@@ -513,4 +519,41 @@ test('§XXV scopeOfficeFor pins reception and sales, frees manager and admin', (
   assert.equal(permissions.scopeOfficeFor({ role: ROLES.MANAGER, salesOfficeId: null }), null);
   assert.equal(permissions.scopeOfficeFor({ role: ROLES.ADMINISTRATOR, salesOfficeId: null }), null);
   assert.equal(permissions.scopeOfficeFor(null), null);
+});
+
+// ----------------------------------------------- guest category (§A15)
+
+test('§A15 the guest category list is the four the business supplied, and is stable', () => {
+  assert.deepEqual(GUEST_CATEGORY_IDS,
+    ['BOARD_GUEST', 'SALES_PARTNER', 'CUSTOMER', 'OTHER_PARTNER']);
+  // Every value carries both languages, so no screen can fall back to a raw id.
+  for (const c of GUEST_CATEGORIES) {
+    assert.ok(c.vi && c.en, `${c.id} needs both labels`);
+  }
+  assert.equal(GUEST_CATEGORIES.find((c) => c.id === 'BOARD_GUEST').vi, 'Khách của HĐQT');
+});
+
+test('§A15 guest category is required and must be one of the four', () => {
+  const base = {
+    language: 'vi', salesOfficeId: 'CII_BINH_THANH', visitorType: 'VISITOR',
+    fullName: 'Nguyễn Văn A', cccd: '012345678901', phone: '0901234567',
+    numberOfVisitors: 2, visitDate: '2026-10-05', timeSlotId: 'SLOT_0900_1030',
+  };
+
+  for (const missing of [undefined, null, '', '   ']) {
+    const { errors } = validation.validateRegistrationInput(
+      { ...base, guestCategory: missing }, CTX);
+    assert.ok(errors.some((e) => e.code === 'GUEST_CATEGORY_REQUIRED'),
+      `blank category (${JSON.stringify(missing)}) must be refused`);
+  }
+
+  const bad = validation.validateRegistrationInput({ ...base, guestCategory: 'VIP' }, CTX);
+  assert.ok(bad.errors.some((e) => e.code === 'INVALID_GUEST_CATEGORY'),
+    'a category outside the four is refused rather than stored');
+
+  for (const id of GUEST_CATEGORY_IDS) {
+    const ok = validation.validateRegistrationInput({ ...base, guestCategory: id }, CTX);
+    assert.deepEqual(ok.errors, [], `${id} is accepted`);
+    assert.equal(ok.value.guestCategory, id);
+  }
 });

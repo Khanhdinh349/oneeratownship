@@ -134,6 +134,10 @@ requirement) has been settled: there is one 09:00 slot, and the
 | A12 | "Today" and every time-of-day rule use **Vietnam time (UTC+7)**, whatever timezone the server runs in | Vercel runs in UTC; before this, "today" between midnight and 07:00 was yesterday's date. |
 | A13 | The 30-guest limit is a **ceiling**: an administrator can lower a slot's capacity, not raise it above 30 | The limit was stated as a maximum. Change `SLOT_CAPACITY` to move it. |
 | A14 | Every account whose password was chosen by someone else — created or reset by an administrator, or seeded — must change it at the first sign-in, and the API refuses everything else until it does | Enforced in the authentication middleware for every route, not only on the sign-in screen. |
+| A15 | **Guest category** is required on every new registration, and is one of four values the business supplied: Khách của HĐQT, Đối tác của Sales, Khách hàng, Đối tác khác | The values are the company's own, not inferred. Registrations taken before the field existed keep NULL — they cannot be classified after the fact, and guessing would invent data. The category drives no workflow; it is recorded for reception and for reporting. |
+| A16 | A parking-ticket action issues a **quantity** of tickets (default 1, ceiling 20). When ticket numbers are given there must be exactly one per ticket | A group arriving on eight motorbikes is one action, not eight. Padding or truncating a short list is what made the register disagree with the drawer, so a mismatch is refused instead. The whole batch is written in one transaction. |
+| A17 | Reception may correct a check-in afterwards — **arrival count, admitted slot, agency sales staff** — and nothing else. Every correction is written to the status history with who made it | The desk notices its own mistakes, usually within minutes. The corrected count is re-checked against the slot's real free places, so a correction cannot be used to get round capacity. Sales cannot correct a check-in. |
+| A18 | Reception can register a **walk-in at the desk** and check them in in the same action | Same endpoint, same validation as the public form; only today's date, the receptionist's own office and the running slot are filled in for them. The "check in immediately" box can be unticked when registering at the desk for a later slot. |
 | A9 | Exporting the registration list is open to everyone who can read it; **customer statistics are Manager and Administrator only** | The list export holds exactly the rows and columns already on screen. The statistics screen is management information — §XXXIX gives the whole data set to Manager and Administrator, and pins the desk roles to their own office and day. |
 
 ## Status lifecycle (§XXIII)
@@ -356,7 +360,7 @@ opens.
 
 ## Tests
 
-475 tests across eleven files, run with `npm test`:
+491 tests across twelve files, run with `npm test`:
 
 | File | Covers |
 | --- | --- |
@@ -370,6 +374,7 @@ opens.
 | `security.test.js` | production secret checks, security headers, rate limiting, error-leak safety, database portability and migration |
 | `admin.test.js` | the Administrator role, account management, blocked periods, slot capacity, the audit log |
 | `capacity-timing.test.js` | the business clock, the 30-guest limit against real arrivals, finished slots, early / late / other-day check-ins, actual attendance in reports, account activity, the forced password change |
+| `desk-operations.test.js` | parking tickets issued by quantity (batch atomicity, number/quantity mismatch, re-issue after return), correcting a check-in, walk-in registration, the guest category |
 | `export.customer-stats.test.js` | the .xlsx writer (ZIP structure, escaping, timezone handling, sheet naming), both reports, every customer statistic against hand-checked numbers, and the Manager-only boundary |
 
 The suite pins a fake clock (`2026-10-01`), so date-dependent rules are
@@ -408,8 +413,13 @@ A registration can hold several — a party of six may arrive in one car and on 
 motorbikes — so each ticket is its own record with its own vehicle type, optional
 ticket number, who issued it and who took it back.
 
-The desk gets one counter per vehicle type with its own issue button and ticket-number
-box, and a list of every ticket showing which are still out. The same physical ticket
+The desk gets one counter per vehicle type with a **quantity box**, an optional
+ticket-number box and an issue button, plus a list of every ticket showing which are
+still out. Entering a quantity hands out that many tickets in one action and says how
+many were issued; ticket numbers are typed as a comma-separated list and there must be
+exactly one per ticket, so what the desk typed and what the register holds cannot
+drift apart. A batch is written in a single transaction — a clash on the fifth number
+leaves none of the first four behind. The same physical ticket
 number cannot be issued twice while it is out, though cars and motorbikes have separate
 number series. The dashboard splits issued / returned / still-held by vehicle type, and
 the registration list can be filtered by vehicle type or by whether a ticket is still out.

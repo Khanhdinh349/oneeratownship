@@ -287,13 +287,43 @@ body.app-shell { background: var(--slate-900); display: block; padding: 0; }
 }
 .vehicle-card__meta { font-size: 11.5px; color: var(--text-muted); margin-top: .3rem; }
 .vehicle-card__meta b { color: var(--text); }
-.vehicle-card__issue { display: flex; gap: .5rem; margin-top: .75rem; }
+.vehicle-card__issue {
+  display: flex; gap: .5rem; margin-top: .75rem; align-items: flex-end; flex-wrap: wrap;
+}
 .vehicle-card__issue input { flex: 1 1 auto; min-width: 0; padding: .55rem .7rem; font-size: 12.5px; }
+
+/* The quantity box is the field the desk reaches for most, so it carries a real
+   label instead of a placeholder, and stays narrow so the ticket-number field
+   still reads as the longer, optional one. */
+.vehicle-card__qty { display: flex; flex-direction: column; gap: .25rem; flex: 0 0 auto; }
+.vehicle-card__qty span { font-size: 11px; color: var(--text-muted); letter-spacing: .02em; }
+.vehicle-card__qty input { width: 4.5rem; flex: 0 0 auto; text-align: center; font-weight: 600; }
+.vehicle-card__hint { margin-top: .45rem; font-size: 11.5px; line-height: 1.45; }
 
 @media (max-width: 720px) {
   .vehicle-grid { grid-template-columns: 1fr; }
   .guest-check__stepper { margin-left: 0; width: 100%; justify-content: space-between; }
 }
+
+/* The desk's walk-in form: fields flow into as many columns as fit. */
+.walkin-grid {
+  display: grid; gap: .85rem; margin-bottom: .85rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+.walkin-grid .field { margin: 0; }
+.walkin-check {
+  display: flex; align-items: center; gap: .55rem; margin-top: .5rem;
+  font-size: 13px; cursor: pointer;
+}
+.walkin-check input { width: 1rem; height: 1rem; flex: 0 0 auto; }
+
+/* Correcting a check-in: three narrow fields side by side on a desk screen,
+   stacked on a phone. */
+.amend-grid {
+  display: grid; gap: .75rem; margin-bottom: .25rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+.amend-grid .field { margin: 0; }
 
 /* ------------------------------------------------------------------ modals */
 

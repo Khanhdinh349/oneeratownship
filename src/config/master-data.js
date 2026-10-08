@@ -141,6 +141,35 @@ const CHECKIN_METHODS = Object.freeze({ QR: 'QR', SEARCH: 'SEARCH' });
 const VEHICLE_TYPES = Object.freeze({ CAR: 'CAR', MOTORBIKE: 'MOTORBIKE' });
 
 /**
+ * How many tickets one "Cấp phiếu" action may hand out at once.
+ *
+ * A group arriving on eight motorbikes should be recorded in one action, not
+ * eight separate ones. The ceiling exists so that a mistyped quantity ("100")
+ * is refused at the desk rather than flooding the register with phantom tickets.
+ */
+const MAX_TICKETS_PER_ISSUE = 20;
+
+/**
+ * GUEST CATEGORY — who the visitor is to the company, as reception classifies them.
+ *
+ * The four values are the business's own, supplied by the CRM manager; nothing
+ * here is inferred. The category drives no workflow by itself — it is recorded
+ * for reporting and so the desk knows how to receive the guest.
+ */
+const GUEST_CATEGORIES = Object.freeze([
+  Object.freeze({ id: 'BOARD_GUEST', vi: 'Khách của HĐQT', en: 'Board of Directors guest' }),
+  Object.freeze({ id: 'SALES_PARTNER', vi: 'Đối tác của Sales', en: 'Sales partner' }),
+  Object.freeze({ id: 'CUSTOMER', vi: 'Khách hàng', en: 'Customer' }),
+  Object.freeze({ id: 'OTHER_PARTNER', vi: 'Đối tác khác', en: 'Other partner' }),
+]);
+
+const GUEST_CATEGORY_IDS = Object.freeze(GUEST_CATEGORIES.map((c) => c.id));
+
+function guestCategoryById(id) {
+  return GUEST_CATEGORIES.find((c) => c.id === id) || null;
+}
+
+/**
  * How far the arrival count may differ from the booking before the desk is told
  * the number looks wrong. A party can grow or shrink a little on the day; a wild
  * number is usually a typo.
@@ -206,6 +235,10 @@ module.exports = {
   AUTO_REFRESH_MS,
   CHECKIN_METHODS,
   VEHICLE_TYPES,
+  MAX_TICKETS_PER_ISSUE,
+  GUEST_CATEGORIES,
+  GUEST_CATEGORY_IDS,
+  guestCategoryById,
   MAX_GUEST_OVERAGE,
   REPORT_UTC_OFFSET_MINUTES,
   BUSINESS_UTC_OFFSET_MINUTES,

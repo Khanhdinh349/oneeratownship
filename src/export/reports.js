@@ -3,6 +3,7 @@
 const { buildWorkbook, STYLE, plainDate } = require('./xlsx');
 const {
   VISITOR_TYPES, VEHICLE_TYPES, REPORT_UTC_OFFSET_MINUTES, officeById, slotById,
+  guestCategoryById,
 } = require('../config/master-data');
 
 /**
@@ -100,6 +101,7 @@ const REGISTRATION_COLUMNS = [
   { header: 'Mã xác nhận', width: 16 },
   { header: 'Trạng thái', width: 15 },
   { header: 'Loại khách', width: 16 },
+  { header: 'Phân loại khách', width: 20 },
   { header: 'Sàn giao dịch', width: 24 },
   { header: 'Ngày tham quan', width: 15, style: STYLE.DATE },
   { header: 'Khung giờ', width: 16 },
@@ -128,6 +130,13 @@ const REGISTRATION_COLUMNS = [
   { header: 'Ghi chú', width: 40 },
 ];
 
+/** Blank for registrations taken before the category existed — never guessed. */
+function guestCategoryVi(id) {
+  if (!id) return null;
+  const c = guestCategoryById(id);
+  return c ? c.vi : id;
+}
+
 function registrationRow(reg) {
   const v = reg.visitor || {};
   const a = reg.agency || {};
@@ -141,6 +150,7 @@ function registrationRow(reg) {
     reg.confirmationCode,
     statusVi(reg.status),
     typeVi(reg.visitorType),
+    guestCategoryVi(reg.guestCategory),
     officeName(reg.salesOfficeId),
     dateCell(reg.visitDate),
     slotLabel(reg.timeSlotId),

@@ -10,6 +10,8 @@
 
   const TABS = [
     { id: 'checkin', label: 'Check-in', permission: 'checkin:perform' },
+    // Walk-ins: anyone who may create a registration gets the desk form.
+    { id: 'walkin', label: 'Đăng ký tại quầy', permission: 'registration:create' },
     { id: 'registrations', label: 'Đăng ký', permission: 'registration:view' },
     { id: 'dashboard', label: 'Dashboard', permission: 'dashboard:view' },
     // Management information: the tab only exists for a role that holds the
@@ -316,6 +318,7 @@
     bindAccounts();
     bindBlocks();
     bindAudit();
+    bindWalkin();
 
     const first = TABS.find((t) => has(t.permission));
     selectTab(first ? first.id : 'registrations');
@@ -334,7 +337,7 @@
   function selectTab(id) {
     state.tab = id;
     $$('[data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === id)));
-    ['checkin', 'registrations', 'dashboard', 'stats', 'calendar', 'guide',
+    ['checkin', 'walkin', 'registrations', 'dashboard', 'stats', 'calendar', 'guide',
       'accounts', 'blocks', 'audit', 'detail'].forEach((p) => {
       const el = $(`#panel-${p}`);
       if (el) el.classList.toggle('hidden', p !== id);
@@ -388,6 +391,7 @@
     if (!state.session) return;
     try {
       if (state.tab === 'checkin') await loadOfficeSummary();
+      if (state.tab === 'walkin') renderWalkinForm();
       if (state.tab === 'registrations') await loadRegistrations();
       if (state.tab === 'dashboard') await loadDashboard();
       if (state.tab === 'stats') await loadStats();
@@ -549,6 +553,7 @@
           <div class="kv"><span class="kv__k">Văn phòng</span><span class="kv__v">${esc(r.salesOffice.name)}</span></div>
           <div class="kv"><span class="kv__k">Ngày tham quan</span><span class="kv__v">${esc(fmtDate(r.visitDate))}</span></div>
           <div class="kv"><span class="kv__k">Khung giờ</span><span class="kv__v">${esc(r.timeSlot.label)}</span></div>
+          <div class="kv"><span class="kv__k">Phân loại khách</span><span class="kv__v">${esc(guestCategoryLabel(r.guestCategory))}</span></div>
           <div class="kv"><span class="kv__k">Trạng thái</span><span class="kv__v">${statusBadge(r.status)}</span></div>
           ${r.checkin ? `<div class="kv"><span class="kv__k">Đã check-in</span><span class="kv__v">${esc(fmtTime(r.checkin.checkinTime))} · ${esc(r.checkin.receptionistName)}</span></div>` : ''}
         </div>
@@ -569,6 +574,7 @@
             ? `<button class="btn btn--accent btn--block btn--lg" id="do-checkin-override">${esc(overrideLabel)}</button>`
             : ''}
       </div>
+      ${renderAmendControls(r)}
       ${r.parkingTicketApplicable ? renderParkingControls(r) : ''}
       ${renderStatusControls(r)}
       <div class="section-title">Lịch sử trạng thái</div>
@@ -583,6 +589,7 @@
       btn.addEventListener('click', () => doCheckin(r.id, Boolean($('#do-checkin-override'))));
     }
     bindGuestCheck(r, ready);
+    bindAmendControls(r);
     bindParkingControls(r);
     bindStatusControls(r);
   }
@@ -785,8 +792,18 @@
           </div>
           ${canEdit ? `
             <div class="vehicle-card__issue">
-              <input id="pt-num-${v.type}" placeholder="Số phiếu (tuỳ chọn)" autocomplete="off">
+              <label class="vehicle-card__qty">
+                <span>Số lượng</span>
+                <input id="pt-qty-${v.type}" type="number" min="1" max="20" step="1"
+                       value="1" inputmode="numeric" autocomplete="off">
+              </label>
+              <input id="pt-num-${v.type}" placeholder="Mã số phiếu — cách nhau dấu phẩy (tuỳ chọn)"
+                     autocomplete="off">
               <button class="btn btn--sm btn--primary" data-issue="${v.type}">Cấp phiếu</button>
+            </div>
+            <div class="field__help vehicle-card__hint">
+              Nhập <b>số lượng</b> xe để cấp nhiều phiếu cùng lúc. Ô mã số là số in trên phiếu
+              (vd: <span class="mono">12, 13, 14</span>) — để trống nếu không ghi số.
             </div>` : ''}
         </div>`;
     }).join('');
@@ -830,12 +847,32 @@
     $$('[data-issue]').forEach((b) => b.addEventListener('click', async () => {
       const type = b.dataset.issue;
       const numInput = $(`#pt-num-${type}`);
+      const qtyInput = $(`#pt-qty-${type}`);
+
+      // Ticket numbers are a comma-separated list, one per ticket. When any are
+      // given they decide the count, so what the desk typed and what is written
+      // are the same thing; otherwise the quantity box decides.
+      const numbers = (numInput ? numInput.value : '')
+        .split(',').map((s) => s.trim()).filter(Boolean);
+      const quantity = numbers.length ? numbers.length : Number(qtyInput ? qtyInput.value : 1);
+
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        notice('Số lượng phiếu phải là số nguyên từ 1 trở lên.', 'danger');
+        return;
+      }
+
       b.disabled = true;
       try {
         const res = await api(`/api/staff/registrations/${encodeURIComponent(r.id)}/parking-tickets`, {
           method: 'POST',
-          body: JSON.stringify({ vehicleType: type, ticketNumber: numInput ? numInput.value : null }),
+          body: JSON.stringify({
+            vehicleType: type,
+            quantity,
+            ticketNumbers: numbers.length ? numbers : null,
+          }),
         });
+        const label = VEHICLES.find((v) => v.type === type)?.label || type;
+        notice(`Đã cấp ${res.issued} phiếu ${label.toLowerCase()}.`, 'ok');
         await refresh(res);
       } catch (err) { notice(err.message, 'danger'); b.disabled = false; }
     }));
@@ -868,6 +905,347 @@
     IN_VISIT: ['COMPLETED'],
     COMPLETED: [], CANCELLED: [], NO_SHOW: [],
   };
+
+  /**
+   * Correcting a check-in that has already happened.
+   *
+   * Reception notices the mistake minutes later — six people counted as five, the
+   * group walked into the 13:00 slot while the record says 10:30, the wrong sales
+   * staff named. The panel only appears once a visitor is actually checked in, and
+   * only the three fields reception asked for can be touched; everything else about
+   * the registration stays as the visitor submitted it.
+   */
+  function renderAmendControls(r) {
+    if (!has('checkin:amend')) return '';
+    if (!r.checkin || !['CHECKED_IN', 'IN_VISIT', 'COMPLETED'].includes(r.status)) return '';
+
+    const slots = (state.config && state.config.timeSlots) || [];
+    const current = r.checkin.admittedSlotId || r.timeSlotId;
+    const isAgency = r.visitorType === 'AGENCY';
+
+    return `
+      <div class="section-title">Sửa thông tin sau check-in</div>
+      <div class="field__help" style="margin-bottom:.7rem">
+        Chỉ dùng khi ghi nhận sai lúc đón khách. Mọi thay đổi đều được lưu vào lịch sử
+        kèm tên người sửa.
+      </div>
+      <div class="amend-grid">
+        <div class="field">
+          <label for="amend-guests">Số khách thực tế</label>
+          <input id="amend-guests" type="number" min="1" step="1" inputmode="numeric"
+                 value="${esc(String(r.checkin.actualGuests ?? r.numberOfVisitors))}">
+        </div>
+        <div class="field">
+          <label for="amend-slot">Khung giờ thực tế</label>
+          <select id="amend-slot">
+            ${slots.map((sl) => `<option value="${esc(sl.id)}" ${
+              sl.id === current ? 'selected' : ''}>${esc(sl.label)}</option>`).join('')}
+          </select>
+        </div>
+        ${isAgency ? `
+        <div class="field">
+          <label for="amend-staff">Nhân viên Sales phụ trách</label>
+          <input id="amend-staff" value="${esc(r.agency.salesStaffName || '')}" autocomplete="off">
+        </div>` : ''}
+      </div>
+      <div class="actions">
+        <button class="btn btn--primary" id="amend-save">Lưu chỉnh sửa</button>
+      </div>`;
+  }
+
+  function bindAmendControls(r) {
+    const btn = $('#amend-save');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const body = {
+        actualGuests: Number($('#amend-guests').value),
+        admittedSlotId: $('#amend-slot').value,
+      };
+      const staff = $('#amend-staff');
+      if (staff) body.salesStaffName = staff.value;
+
+      btn.disabled = true;
+      try {
+        const res = await api(`/api/staff/registrations/${encodeURIComponent(r.id)}/checkin`, {
+          method: 'PATCH',
+          body: JSON.stringify(body),
+        });
+        notice(res.changed ? `Đã cập nhật: ${res.changes.join('; ')}` : 'Không có thay đổi nào.',
+          res.changed ? 'ok' : 'info');
+        // The response carries the registration as it now stands, so the panel,
+        // the history and the office totals all show the corrected numbers rather
+        // than the ones just replaced.
+        state.selected = { ...state.selected, registration: res.registration };
+        renderCheckinDetail();
+        loadOfficeSummary();
+      } catch (err) {
+        const d = err.details || {};
+        notice(err.code === 'SLOT_CAPACITY_EXCEEDED'
+          ? `Vượt sức chứa: khung giờ này chỉ còn chỗ cho ${d.maxGuests} người `
+            + `(đã có ${d.occupiedByOthers}/${d.capacity} của các đoàn khác).`
+          : err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  // ------------------------------------------------- walk-in registration
+
+  /**
+   * Registering a guest who is standing at the desk.
+   *
+   * Everything the visitor form asks for still applies — this posts to the same
+   * endpoint and is validated by the same rules — but the three answers the desk
+   * already knows are filled in for it: today's date, the receptionist's own
+   * office, and the slot that is running now. The guest is normally checked in at
+   * the same moment, which is the point of the feature; the box can be unticked
+   * when someone registers at the desk for a later slot.
+   */
+  /**
+   * Which slot a walk-in goes into, and how much room each one has left.
+   *
+   * This asks the server rather than reading the desk PC's clock: the backend
+   * already knows which slots have passed, which are blocked and how many places
+   * are free, and a desk machine with a wrong clock would otherwise send guests
+   * into the wrong slot. The first slot still open is pre-selected, so the common
+   * case needs no thought.
+   */
+  async function renderWalkinForm() {
+    if (!$('#panel-walkin')) return;
+
+    const cats = (state.config && state.config.guestCategories) || [];
+    const catSel = $('#wi-category');
+    if (catSel && !catSel.options.length) {
+      catSel.innerHTML = `<option value="">— Chọn phân loại —</option>${
+        cats.map((c) => `<option value="${esc(c.id)}">${esc(c.vi)}</option>`).join('')}`;
+    }
+
+    const officeId = state.session.user.salesOfficeId;
+    const slotSel = $('#wi-slot');
+    if (slotSel && officeId) {
+      const keep = slotSel.value;
+      let slots = [];
+      try {
+        const av = await api(`/api/availability?salesOfficeId=${encodeURIComponent(officeId)}`
+          + `&visitDate=${encodeURIComponent(state.config.today)}`);
+        slots = av.slots || [];
+      } catch {
+        slots = ((state.config && state.config.timeSlots) || [])
+          .map((sl) => ({ slotId: sl.id, label: sl.label, remaining: null }));
+      }
+
+      slotSel.innerHTML = slots.map((sl) => {
+        const shut = sl.passed || sl.blocked || sl.remaining === 0;
+        const note = sl.passed ? 'đã qua giờ'
+          : sl.blocked ? 'đã khoá'
+            : sl.remaining === 0 ? 'hết chỗ'
+              : sl.remaining === null ? '' : `còn ${sl.remaining} chỗ`;
+        return `<option value="${esc(sl.slotId)}" ${shut ? 'disabled' : ''}>${
+          esc(sl.label)}${note ? ` — ${esc(note)}` : ''}</option>`;
+      }).join('');
+
+      const open = slots.find((sl) => !sl.passed && !sl.blocked && sl.remaining !== 0);
+      const stillOpen = slots.some((sl) => sl.slotId === keep && !sl.passed && !sl.blocked);
+      slotSel.value = stillOpen ? keep : ((open || {}).slotId || '');
+    }
+
+    renderWalkinRoleFields();
+  }
+
+  /** §VI for a visitor, §XI–§XIII for an agency — the same fields, at the desk. */
+  function renderWalkinRoleFields() {
+    const box = $('#wi-role-fields');
+    if (!box) return;
+    const isAgency = ($('#wi-type') || {}).value === 'AGENCY';
+    const agencies = (state.config && state.config.agencies) || [];
+
+    box.innerHTML = isAgency ? `
+      <div class="field">
+        <label for="wi-agency">Đại lý <span class="field__req">*</span></label>
+        <select id="wi-agency">
+          <option value="">— Chọn đại lý —</option>
+          ${agencies.map((a) => `<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" id="wi-agency-other-wrap" style="display:none">
+        <label for="wi-agency-other">Tên đại lý khác <span class="field__req">*</span></label>
+        <input id="wi-agency-other" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="wi-staff-name">Nhân viên Sales <span class="field__req">*</span></label>
+        <input id="wi-staff-name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="wi-staff-cccd">CCCD nhân viên <span class="field__req">*</span></label>
+        <input id="wi-staff-cccd" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="wi-staff-phone">SĐT nhân viên <span class="field__req">*</span></label>
+        <input id="wi-staff-phone" inputmode="tel" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="wi-cust-name">Tên khách (viết tắt) <span class="field__req">*</span></label>
+        <input id="wi-cust-name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="wi-cust-last4">4 số cuối SĐT khách <span class="field__req">*</span></label>
+        <input id="wi-cust-last4" inputmode="numeric" maxlength="4" autocomplete="off">
+      </div>` : `
+      <div class="field">
+        <label for="wi-name">Họ và tên <span class="field__req">*</span></label>
+        <input id="wi-name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="wi-cccd">CCCD <span class="field__req">*</span></label>
+        <input id="wi-cccd" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="wi-phone">Điện thoại <span class="field__req">*</span></label>
+        <input id="wi-phone" inputmode="tel" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="wi-email">Email</label>
+        <input id="wi-email" type="email" autocomplete="off">
+      </div>`;
+
+    const ag = $('#wi-agency');
+    if (ag) {
+      ag.addEventListener('change', () => {
+        const other = $('#wi-agency-other-wrap');
+        // "Khác" is the one agency whose name the desk types in.
+        if (other) other.style.display = ag.value === 'AG_OTHER' ? '' : 'none';
+      });
+    }
+  }
+
+  function walkinPayload() {
+    const isAgency = $('#wi-type').value === 'AGENCY';
+    const body = {
+      language: 'vi',
+      salesOfficeId: state.session.user.salesOfficeId,
+      visitorType: $('#wi-type').value,
+      visitDate: state.config.today,
+      timeSlotId: $('#wi-slot').value,
+      numberOfVisitors: Number($('#wi-guests').value),
+      guestCategory: $('#wi-category').value,
+      notes: $('#wi-notes').value || null,
+    };
+    if (isAgency) {
+      Object.assign(body, {
+        agencyId: $('#wi-agency').value,
+        agencyName: $('#wi-agency-other') ? $('#wi-agency-other').value : null,
+        salesStaffName: $('#wi-staff-name').value,
+        salesStaffCccd: $('#wi-staff-cccd').value,
+        salesStaffPhone: $('#wi-staff-phone').value,
+        customerShortName: $('#wi-cust-name').value,
+        customerPhoneLast4: $('#wi-cust-last4').value,
+      });
+    } else {
+      Object.assign(body, {
+        fullName: $('#wi-name').value,
+        cccd: $('#wi-cccd').value,
+        phone: $('#wi-phone').value,
+        email: $('#wi-email').value || null,
+      });
+    }
+    return body;
+  }
+
+  function bindWalkin() {
+    if (!$('#panel-walkin')) return;
+
+    $('#wi-type').addEventListener('change', renderWalkinRoleFields);
+
+    $('#wi-reset').addEventListener('click', () => {
+      $('#wi-guests').value = '1';
+      $('#wi-category').value = '';
+      $('#wi-notes').value = '';
+      $('#wi-result').innerHTML = '';
+      renderWalkinForm();
+    });
+
+    $('#wi-submit').addEventListener('click', async () => {
+      const btn = $('#wi-submit');
+      const body = walkinPayload();
+
+      // The desk form registers into the user's own office; an account with no
+      // office has no desk to register at.
+      if (!body.salesOfficeId) {
+        notice('Tài khoản của bạn không gắn với văn phòng nào nên không dùng được form tại quầy.', 'danger');
+        return;
+      }
+      if (!body.guestCategory) { notice('Vui lòng chọn phân loại khách.', 'danger'); return; }
+      if (!Number.isInteger(body.numberOfVisitors) || body.numberOfVisitors < 1) {
+        notice('Số khách phải là số nguyên từ 1 trở lên.', 'danger');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Đang tạo…';
+      try {
+        const created = await api('/api/registrations', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+
+        let checkedIn = false;
+        if ($('#wi-checkin').checked) {
+          // The guest is at the desk, so the arrival count is the number just
+          // entered. The backend still applies every capacity and timing rule.
+          try {
+            await api(`/api/staff/registrations/${encodeURIComponent(created.registrationId)}/checkin`, {
+              method: 'POST',
+              body: JSON.stringify({
+                method: 'SEARCH',
+                actualGuests: body.numberOfVisitors,
+                allowTimeOverride: true,
+              }),
+            });
+            checkedIn = true;
+          } catch (err) {
+            // The registration exists either way; say plainly that only the
+            // check-in failed, so nobody registers the same guest twice.
+            notice(`Đã tạo đăng ký ${created.confirmationCode} nhưng chưa check-in được: ${
+              err.message}`, 'warn');
+          }
+        }
+
+        $('#wi-result').innerHTML = `
+          <div class="notice notice--ok" style="margin-top:1rem">
+            <strong>Đã tạo đăng ký ${esc(created.confirmationCode)}</strong>
+            ${checkedIn ? ' · đã check-in' : ''}
+            <div style="margin-top:.6rem">
+              <img src="${esc(created.qrImageUrl)}" alt="QR ${esc(created.confirmationCode)}"
+                   width="160" height="160">
+            </div>
+          </div>`;
+        if (checkedIn) notice(`✓ Đã đăng ký và check-in ${esc(created.confirmationCode)}`, 'ok');
+        else notice(`✓ Đã tạo đăng ký ${esc(created.confirmationCode)}`, 'ok');
+
+        $('#wi-reset').click();
+        loadOfficeSummary();
+      } catch (err) {
+        const d = err.details || {};
+        notice(err.code === 'SLOT_FULL' || err.code === 'SLOT_CAPACITY_EXCEEDED'
+          ? `Khung giờ đã hết chỗ (còn ${d.remaining ?? d.maxGuests ?? 0}). Vui lòng chọn khung giờ khác.`
+          : err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Tạo đăng ký';
+      }
+    });
+  }
+
+  /**
+   * The category in Vietnamese. Registrations taken before the field existed have
+   * none, and show a dash rather than a guess.
+   */
+  function guestCategoryLabel(id) {
+    if (!id) return '—';
+    const c = ((state.config && state.config.guestCategories) || []).find((x) => x.id === id);
+    return c ? c.vi : id;
+  }
 
   function renderStatusControls(r) {
     if (!has('status:update')) return '';

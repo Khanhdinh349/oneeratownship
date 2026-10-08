@@ -65,6 +65,9 @@ CREATE TABLE IF NOT EXISTS registrations (
   number_of_visitors        INTEGER NOT NULL,
   notes                     TEXT,
   status                    TEXT NOT NULL,
+  -- Who the visitor is to the company. Required on new registrations; rows that
+  -- predate the field keep NULL, and nothing treats NULL as a rule.
+  guest_category            TEXT,
 
   -- §XXI — Khách Tham Quan
   full_name                 TEXT,

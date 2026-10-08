@@ -76,6 +76,15 @@ async function migrate(db) {
     }
   }
 
+  // --- guest category: who the visitor is to the company ---------------------
+  // Deliberately nullable. Registrations taken before the field existed cannot be
+  // classified after the fact, and guessing a category would be inventing data.
+  if (await tableExists(db, 'registrations')
+      && !(await columns(db, 'registrations')).includes('guest_category')) {
+    await db.exec('ALTER TABLE registrations ADD COLUMN guest_category TEXT');
+    applied.push('registrations.guest_category');
+  }
+
   // --- account activity and the forced first-login password change -----------
   if (await tableExists(db, 'users')) {
     const cols = await columns(db, 'users');

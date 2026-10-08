@@ -548,7 +548,7 @@ test('§XXIX tickets are counted separately for cars and motorbikes', async () =
   const actor = { id: user.id, name: user.fullName };
   await checkins.checkIn(reg.id, { allowTimeOverride: true, user, method: 'QR' });
 
-  const car = await parking.issue(reg.id, { vehicleType: 'CAR', ticketNumber: 'PX-001' }, { actor });
+  const [car] = await parking.issue(reg.id, { vehicleType: 'CAR', ticketNumber: 'PX-001' }, { actor });
   await parking.issue(reg.id, { vehicleType: 'MOTORBIKE', ticketNumber: 'XM-11' }, { actor });
   await parking.issue(reg.id, { vehicleType: 'MOTORBIKE' }, { actor });
 
@@ -595,7 +595,7 @@ test('§XXIX returning a ticket records who took it back, and only once', async 
   const actor = { id: user.id, name: user.fullName };
   await checkins.checkIn(reg.id, { allowTimeOverride: true, user });
 
-  const t = await parking.issue(reg.id, { vehicleType: 'CAR', ticketNumber: 'PX-7' }, { actor });
+  const [t] = await parking.issue(reg.id, { vehicleType: 'CAR', ticketNumber: 'PX-7' }, { actor });
   const returned = await parking.markReturned(t.id, { actor });
   assert.ok(returned.returnedAt);
   assert.equal(returned.returnedByName, user.fullName);
@@ -621,7 +621,7 @@ test('§XXIX the same physical ticket cannot be out twice', async () => {
   await checkins.checkIn(a.id, { allowTimeOverride: true, user });
   await checkins.checkIn(b.id, { allowTimeOverride: true, user });
 
-  const first = await parking.issue(a.id, { vehicleType: 'CAR', ticketNumber: 'PX-9' }, { actor });
+  const [first] = await parking.issue(a.id, { vehicleType: 'CAR', ticketNumber: 'PX-9' }, { actor });
   await assert.rejects(
     async () => parking.issue(b.id, { vehicleType: 'CAR', ticketNumber: 'PX-9' }, { actor }),
     (e) => e.status === 409 && e.code === 'PARKING_TICKET_NUMBER_IN_USE',
@@ -644,7 +644,7 @@ test('§XXIX a ticket issued in error can be removed', async () => {
   const actor = { id: user.id, name: user.fullName };
   await checkins.checkIn(reg.id, { allowTimeOverride: true, user });
 
-  const t = await parking.issue(reg.id, { vehicleType: 'MOTORBIKE' }, { actor });
+  const [t] = await parking.issue(reg.id, { vehicleType: 'MOTORBIKE' }, { actor });
   assert.equal((await parking.summaryFor(reg.id)).total, 1);
   await parking.remove(t.id);
   assert.equal((await parking.summaryFor(reg.id)).total, 0);
@@ -665,7 +665,7 @@ test('§XXXVIII the list can be filtered by ticket state and by vehicle type', a
     await checkins.checkIn(r.id, { allowTimeOverride: true, user });
   }
   await parking.issue(withCar.id, { vehicleType: 'CAR' }, { actor });
-  const m = await parking.issue(withMoto.id, { vehicleType: 'MOTORBIKE' }, { actor });
+  const [m] = await parking.issue(withMoto.id, { vehicleType: 'MOTORBIKE' }, { actor });
 
   assert.equal((await registrations.list({ parkingTicket: 'issued' })).total, 2);
   assert.equal((await registrations.list({ parkingTicket: 'not_issued' })).total, 1);

@@ -183,14 +183,16 @@ class RegistrationService {
         INSERT INTO registrations (
           id, confirmation_code, qr_token, language, sales_office_id, visitor_type,
           registration_date, visit_date, time_slot_id, number_of_visitors, notes, status,
+          guest_category,
           full_name, cccd, phone, email,
           agency_id, agency_name, sales_staff_name, sales_staff_cccd, sales_staff_phone,
           customer_short_name, customer_phone_last4,
           created_at, updated_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
       ).run(
         id, confirmationCode, qrToken, value.language, value.salesOfficeId, value.visitorType,
         this.today(), value.visitDate, value.timeSlotId, value.numberOfVisitors, value.notes, STATUS.REGISTERED,
+        value.guestCategory ?? null,
         value.fullName ?? null, value.cccd ?? null, value.phone ?? null, value.email ?? null,
         value.agencyId ?? null, value.agencyName ?? null, value.salesStaffName ?? null,
         value.salesStaffCccd ?? null, value.salesStaffPhone ?? null,
@@ -439,6 +441,18 @@ class RegistrationService {
       INSERT INTO status_history (id, registration_id, from_status, to_status, changed_by, changed_by_name, changed_at, note)
       VALUES (?,?,?,?,?,?,?,?)`
     ).run(randomUUID(), registrationId, from, to, actor.id, actor.name, this.now(), note);
+  }
+
+  /**
+   * Record something that happened to a registration without moving its status.
+   *
+   * A correction to a check-in is not a lifecycle step — the visitor is still
+   * checked in — but it must leave a trace, with who did it and when (§Rule 7).
+   * `from` and `to` are therefore the same status, which is why this cannot go
+   * through `_applyStatusWithinTransaction`: that one asserts a real transition.
+   */
+  async recordNote(registrationId, status, actor, note, tx = null) {
+    await this.#recordHistory(registrationId, status, status, actor, note, tx || this.db);
   }
 
   /** §XXIII — every change is validated against the lifecycle and recorded. */

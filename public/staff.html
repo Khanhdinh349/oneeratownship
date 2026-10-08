@@ -132,6 +132,59 @@
     </section>
 
     <!-- ---------------- REGISTRATION LIST (§XXXVIII) ------------------- -->
+    <!-- ------------- WALK-IN: register a guest standing at the desk --------- -->
+    <section id="panel-walkin" class="panel hidden">
+      <div class="card">
+        <div class="card__head">
+          <div>
+            <div class="card__title">Đăng ký nhanh tại quầy</div>
+            <div class="card__hint">Dành cho khách đến trực tiếp chưa đăng ký trước. Ngày và văn phòng lấy theo hôm nay.</div>
+          </div>
+        </div>
+
+        <div class="walkin-grid">
+          <div class="field">
+            <label for="wi-type">Đối tượng <span class="field__req">*</span></label>
+            <select id="wi-type">
+              <option value="VISITOR">Khách tham quan</option>
+              <option value="AGENCY">Đại lý</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="wi-category">Phân loại khách <span class="field__req">*</span></label>
+            <select id="wi-category"></select>
+          </div>
+          <div class="field">
+            <label for="wi-slot">Khung giờ <span class="field__req">*</span></label>
+            <select id="wi-slot"></select>
+          </div>
+          <div class="field">
+            <label for="wi-guests">Số khách <span class="field__req">*</span></label>
+            <input id="wi-guests" type="number" min="1" step="1" value="1" inputmode="numeric">
+          </div>
+        </div>
+
+        <div id="wi-role-fields" class="walkin-grid"></div>
+
+        <div class="field">
+          <label for="wi-notes">Ghi chú</label>
+          <textarea id="wi-notes" rows="2" maxlength="500"></textarea>
+        </div>
+
+        <label class="walkin-check">
+          <input type="checkbox" id="wi-checkin" checked>
+          <span>Check-in ngay sau khi đăng ký (khách đang có mặt tại quầy)</span>
+        </label>
+
+        <div class="actions" style="margin-top:1rem">
+          <button class="btn btn--primary btn--lg" id="wi-submit">Tạo đăng ký</button>
+          <button class="btn btn--ghost" id="wi-reset">Xoá form</button>
+        </div>
+
+        <div id="wi-result"></div>
+      </div>
+    </section>
+
     <section id="panel-registrations" class="panel hidden">
       <div class="card">
         <div class="card__head">

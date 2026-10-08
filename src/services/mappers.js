@@ -74,6 +74,8 @@ function mapRegistration(row) {
     numberOfVisitors: row.number_of_visitors,
     notes: row.notes ?? null,
     status: row.status,
+    // NULL on registrations taken before the field existed.
+    guestCategory: row.guest_category ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

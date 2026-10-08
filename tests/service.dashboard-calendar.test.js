@@ -53,7 +53,7 @@ async function scenario() {
   await services.parking.issue(r1.id, { vehicleType: 'CAR', ticketNumber: 'PX-1' }, { actor });
 
   await checkins.checkIn(r2.id, { allowTimeOverride: true, user: cii, method: 'SEARCH' });
-  const moto = await services.parking.issue(r2.id, { vehicleType: 'MOTORBIKE', ticketNumber: 'PX-2' }, { actor });
+  const [moto] = await services.parking.issue(r2.id, { vehicleType: 'MOTORBIKE', ticketNumber: 'PX-2' }, { actor });
   await services.parking.markReturned(moto.id, { actor });
   await registrations.changeStatus(r2.id, 'COMPLETED', { actor });
 

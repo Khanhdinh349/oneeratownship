@@ -2,6 +2,7 @@
 
 const {
   LANGUAGES, VISITOR_TYPES, MAX_ADVANCE_DAYS, OTHER_AGENCY_ID, MAX_AGENCY_NAME_LENGTH,
+  GUEST_CATEGORY_IDS,
 } = require('../config/master-data');
 const { isValidDateString, isVisitDateWithinWindow, addDays } = require('./dates');
 const { badRequest } = require('./errors');
@@ -146,6 +147,26 @@ function validateNotes(notes, errors) {
   return v || null;
 }
 
+/**
+ * Guest category (§A15) — required on every new registration.
+ *
+ * Existing rows predate the field and keep NULL; nothing reads it as a rule, so
+ * an old registration without one still behaves exactly as before.
+ */
+function validateGuestCategory(value, errors) {
+  const v = str(value);
+  if (!v) {
+    addError(errors, 'guestCategory', 'GUEST_CATEGORY_REQUIRED', 'Guest category is required.');
+    return null;
+  }
+  if (!GUEST_CATEGORY_IDS.includes(v)) {
+    addError(errors, 'guestCategory', 'INVALID_GUEST_CATEGORY',
+      `Guest category must be one of: ${GUEST_CATEGORY_IDS.join(', ')}.`);
+    return null;
+  }
+  return v;
+}
+
 function validateRequiredName(value, field, label, errors) {
   const v = cleanName(value);
   if (!v) {
@@ -272,6 +293,7 @@ function validateRegistrationInput(input, ctx) {
   const slot = validateTimeSlot(payload.timeSlotId, slots, errors);
   const numberOfVisitors = validateNumberOfVisitors(payload.numberOfVisitors, errors);
   const notes = validateNotes(payload.notes, errors);
+  const guestCategory = validateGuestCategory(payload.guestCategory, errors);
 
   const value = {
     language,
@@ -281,6 +303,7 @@ function validateRegistrationInput(input, ctx) {
     timeSlotId: slot?.id ?? null,
     numberOfVisitors,
     notes,
+    guestCategory,
   };
 
   if (visitorType === VISITOR_TYPES.VISITOR) {

@@ -3,6 +3,7 @@
 const { randomUUID } = require('node:crypto');
 const {
   CHECKIN_METHODS, ROLES, MAX_GUEST_OVERAGE, ARRIVAL, EARLY_GRACE_MINUTES, LATE_GRACE_MINUTES,
+  VISITOR_TYPES,
 } = require('../config/master-data');
 const { toDateString, minutesOfDay, parseHm } = require('../domain/dates');
 const { STATUS, isCheckedInOrBeyond } = require('../domain/status');
@@ -449,6 +450,140 @@ class CheckinService {
       registration: await this.registrations.getById(registrationId),
       guests,
       timing,
+    };
+  }
+
+  /**
+   * Correct a check-in after the fact.
+   *
+   * The desk gets things wrong in the moment — six people counted as five, a group
+   * walked into the 13:00 slot while the record still says 10:30, the wrong sales
+   * staff named. Until now none of it could be fixed, so a mistake stayed in the
+   * reports forever.
+   *
+   * Only the three things reception asked for can change, and each is checked
+   * exactly as it is at check-in: the arrival count still cannot exceed the places
+   * a slot really has, and the slot must be a real one. Every correction is written
+   * to the status history, so it is visible rather than silent (§Rule 7).
+   */
+  async amendCheckin(registrationId, {
+    actualGuests = undefined, admittedSlotId = undefined, salesStaffName = undefined,
+  }, { actor, user }) {
+    const registration = await this.registrations.getById(registrationId);
+    if (!registration) throw notFound('REGISTRATION_NOT_FOUND', 'Registration not found.');
+    this.registrations.assertOfficeAccess(registration, user ?? actor);
+
+    if (!isCheckedInOrBeyond(registration.status)) {
+      throw conflict('NOT_CHECKED_IN',
+        'Only a registration that has been checked in can be corrected.',
+        { status: registration.status });
+    }
+
+    const row = await this.db.prepare('SELECT * FROM checkins WHERE registration_id = ?')
+      .get(registrationId);
+    if (!row) throw notFound('CHECKIN_NOT_FOUND', 'There is no check-in record to correct.');
+
+    const slots = await this.masterData.listSlots({ includeInactive: true });
+    const changes = [];
+    const sets = [];
+    const params = [];
+
+    // --- which slot the group was actually admitted into ----------------------
+    let slot = null;
+    if (admittedSlotId !== undefined && admittedSlotId !== null && admittedSlotId !== '') {
+      slot = slots.find((s) => s.id === admittedSlotId) ?? null;
+      if (!slot) throw badRequest('INVALID_TIME_SLOT', 'That time slot does not exist.');
+      if (slot.id !== row.admitted_slot_id) {
+        sets.push('admitted_slot_id = ?');
+        params.push(slot.id);
+        const from = slots.find((s) => s.id === row.admitted_slot_id);
+        changes.push(`slot ${from?.label ?? row.admitted_slot_id ?? '—'} → ${slot.label}`);
+      }
+    }
+
+    // --- how many people actually came ---------------------------------------
+    if (actualGuests !== undefined && actualGuests !== null && actualGuests !== '') {
+      const actual = Number(actualGuests);
+      if (!Number.isInteger(actual)) {
+        throw badRequest('INVALID_GUEST_COUNT',
+          'The number of arriving guests must be a whole number.');
+      }
+      if (actual < 1) {
+        throw badRequest('GUEST_COUNT_TOO_LOW', 'At least one guest must have arrived.');
+      }
+
+      // The slot this count will sit in once the correction lands, and what every
+      // other group already occupies there. This group's own numbers are excluded,
+      // otherwise it would be counted against itself.
+      const targetSlotId = slot?.id ?? row.admitted_slot_id;
+      const targetDate = row.admitted_date ?? registration.visitDate;
+      if (targetSlotId) {
+        const target = slots.find((s) => s.id === targetSlotId) ?? null;
+        const occupiedByOthers = (await this.registrations.occupancy(
+          registration.salesOfficeId, targetDate, { excludeRegistrationId: registrationId },
+        )).get(targetSlotId) ?? 0;
+        const capacity = target?.capacity ?? 0;
+        const room = Math.max(0, capacity - occupiedByOthers);
+        if (actual > room) {
+          throw conflict('SLOT_CAPACITY_EXCEEDED',
+            `Only ${room} guest(s) fit in the ${target?.label ?? targetSlotId} slot `
+            + `(${occupiedByOthers}/${capacity} taken by other groups).`,
+            { actual, maxGuests: room, capacity, occupiedByOthers, slotId: targetSlotId });
+        }
+      }
+
+      if (actual !== row.actual_guests) {
+        sets.push('actual_guests = ?');
+        params.push(actual);
+        changes.push(`guests ${row.actual_guests} → ${actual}`);
+      }
+    }
+
+    // --- who at the agency brought them --------------------------------------
+    // Only an agency booking carries a sales staff name; asking to change it on a
+    // walk-in visitor is a mistake, not a silent no-op.
+    let newStaffName;
+    if (salesStaffName !== undefined && salesStaffName !== null) {
+      if (registration.visitorType !== VISITOR_TYPES.AGENCY) {
+        throw badRequest('NOT_AN_AGENCY_REGISTRATION',
+          'Only an agency registration has a sales staff name.');
+      }
+      const trimmed = String(salesStaffName).trim();
+      if (!trimmed) {
+        throw badRequest('SALES_STAFF_NAME_REQUIRED', 'Sales staff name cannot be blank.');
+      }
+      if (trimmed !== (registration.agency?.salesStaffName ?? null)) {
+        newStaffName = trimmed;
+        changes.push(`sales staff ${registration.agency?.salesStaffName ?? '—'} → ${trimmed}`);
+      }
+    }
+
+    if (!changes.length) {
+      return { changed: false, changes: [], checkin: mapCheckin(row), registration };
+    }
+
+    await this.db.transaction(async (tx) => {
+      if (sets.length) {
+        await tx.prepare(`UPDATE checkins SET ${sets.join(', ')} WHERE id = ?`)
+          .run(...params, row.id);
+      }
+      if (newStaffName !== undefined) {
+        await tx.prepare('UPDATE registrations SET sales_staff_name = ?, updated_at = ? WHERE id = ?')
+          .run(newStaffName, this.now(), registrationId);
+      }
+      // The status does not move, but what changed, who changed it and when all
+      // go on the record.
+      await this.registrations.recordNote(
+        registrationId, registration.status, actor,
+        `Check-in corrected — ${changes.join('; ')}`, tx,
+      );
+    });
+
+    return {
+      changed: true,
+      changes,
+      checkin: mapCheckin(await this.db.prepare('SELECT * FROM checkins WHERE id = ?').get(row.id)),
+      registration: await this.registrations.getById(registrationId),
     };
   }
 

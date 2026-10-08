@@ -18,7 +18,7 @@
       fullName: '', cccd: '', phone: '', email: '',
       agencyId: '', agencyName: '', salesStaffName: '', salesStaffCccd: '', salesStaffPhone: '',
       customerShortName: '', customerPhoneLast4: '',
-      numberOfVisitors: 1, visitDate: '', timeSlotId: '', notes: '',
+      numberOfVisitors: 1, visitDate: '', timeSlotId: '', guestCategory: '', notes: '',
     },
     availability: [],
     result: null,
@@ -211,6 +211,7 @@
     $('#submit-btn').textContent = i18n.t(isVisitor ? 'btn.submit' : 'btn.submitAgency');
     renderRoleFields();
     renderDateField();
+    renderGuestCategoryOptions();
 
     form.classList.remove('hidden');
     form.style.animation = 'none';
@@ -367,6 +368,29 @@
    * §VIII — each slot shows how many places are left. A slot that is full, or that
    * cannot fit this party, cannot be chosen; the backend refuses it as well.
    */
+  /**
+   * Guest category (§A15). The labels come from the server so the four values
+   * stay the business's own wording, in whichever language the visitor picked.
+   */
+  function renderGuestCategoryOptions() {
+    const sel = $('#f-guestCategory');
+    if (!sel) return;
+    const cats = (state.config && state.config.guestCategories) || [];
+    const lang = i18n.lang;
+    sel.innerHTML = `<option value="">${esc(i18n.t('f.guestCategoryPlaceholder'))}</option>${
+      cats.map((c) => `<option value="${esc(c.id)}" ${
+        state.draft.guestCategory === c.id ? 'selected' : ''}>${
+        esc(lang === 'en' ? c.en : c.vi)}</option>`).join('')}`;
+  }
+
+  /** The chosen category's label in the current language, for review/success. */
+  function guestCategoryLabel(id) {
+    const cats = (state.config && state.config.guestCategories) || [];
+    const c = cats.find((x) => x.id === id);
+    if (!c) return '—';
+    return i18n.lang === 'en' ? c.en : c.vi;
+  }
+
   function renderSlotOptions() {
     const sel = $('#f-timeSlot');
     if (!sel) return;
@@ -428,6 +452,11 @@
       dismissNoticeWhenClean();
       renderSlotOptions();               // a bigger party may no longer fit
     });
+    $('#f-guestCategory').addEventListener('change', (e) => {
+      state.draft.guestCategory = e.target.value;
+      setFieldError('guestCategory', '');
+      dismissNoticeWhenClean();
+    });
     $('#notes').addEventListener('input', (e) => { state.draft.notes = e.target.value; });
   }
 
@@ -459,6 +488,7 @@
     }
     if (!d.visitDate) flag('visitDate', 'err.selectDate');
     if (!d.timeSlotId) flag('timeSlotId', 'err.selectSlot');
+    if (!d.guestCategory) flag('guestCategory', 'err.selectGuestCategory');
 
     if (!ok) {
       globalNotice(esc(i18n.t('err.fixFields')), 'danger');
@@ -502,6 +532,7 @@
       visitDate: d.visitDate,
       timeSlotId: d.timeSlotId,
       numberOfVisitors: Number(d.numberOfVisitors),
+      guestCategory: d.guestCategory,
       notes: d.notes || null,
     };
     if (d.visitorType === 'VISITOR') {
@@ -557,6 +588,7 @@
       kv(i18n.t('visit.dateLabel'), fmtDate(s.visitDate)),
       kv(i18n.t('visit.slotLabel'), s.timeSlot.label),
       kv(i18n.t('f.guests'), `${s.numberOfVisitors} ${i18n.t('unit.people')}`),
+      kv(i18n.t('f.guestCategory'), guestCategoryLabel(s.guestCategory)),
     ]);
     const office = state.config.salesOffices.find((o) => o.id === s.salesOffice.id)
       || state.config.salesOffices.find((o) => o.id === state.draft.salesOfficeId);
@@ -614,6 +646,7 @@
         renderRoleFields();
         renderDateField();
         renderSlotOptions();
+        renderGuestCategoryOptions();
       }
     });
 

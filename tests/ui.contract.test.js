@@ -468,6 +468,11 @@ test('§XXIX cars and motorbikes are counted and issued separately', () => {
   assert.match(fn, /VEHICLES\.map/, 'one counter per vehicle type');
   assert.match(fn, /data-issue="\$\{v\.type\}"/, 'each type has its own issue button');
   assert.match(fn, /pt-num-\$\{v\.type\}/, 'each type has its own ticket-number box');
+  // The desk hands out several tickets at once, so a quantity box sits beside the
+  // number box — and the number box says plainly that it is a code, not a count.
+  assert.match(fn, /pt-qty-\$\{v\.type\}/, 'each type has its own quantity box');
+  assert.match(fn, /Mã số phiếu/, 'the number field is labelled as a code, not a quantity');
+  assert.match(fn, /Số lượng/, 'the quantity field is labelled');
   assert.match(fn, /byVehicleType\[v\.type\]/, 'counts come from the per-type breakdown');
   assert.match(css, /\.vehicle-grid \{/);
   assert.match(css, /\.vehicle-card \{/);

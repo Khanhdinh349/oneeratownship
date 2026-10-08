@@ -1,7 +1,7 @@
 'use strict';
 
 const { randomUUID } = require('node:crypto');
-const { VEHICLE_TYPES } = require('../config/master-data');
+const { VEHICLE_TYPES, MAX_TICKETS_PER_ISSUE } = require('../config/master-data');
 const { isCheckedInOrBeyond } = require('../domain/status');
 const { badRequest, conflict, notFound } = require('../domain/errors');
 const { mapParkingTicket } = require('./mappers');
@@ -56,35 +56,111 @@ class ParkingService {
     ).all(registrationId)).map(mapParkingTicket);
   }
 
-  /** §XXIX — hand out one ticket, for one vehicle, of a stated type. */
-  async issue(registrationId, { vehicleType, ticketNumber = null }, { actor }) {
+  /**
+   * §XXIX — hand out tickets for one vehicle type.
+   *
+   * A group arrives on several vehicles at once, so one action issues `quantity`
+   * tickets rather than one. `ticketNumbers` may carry the physical numbers; when
+   * supplied there must be exactly one per ticket, so that what the desk typed and
+   * what the register holds can never drift apart. The whole batch is written in a
+   * single transaction: a clash on the fifth number must not leave four phantom
+   * tickets behind.
+   */
+  async issue(registrationId, { vehicleType, ticketNumber = null, ticketNumbers = null,
+    quantity = null }, { actor }) {
     const registration = await this.#requireRegistration(registrationId);
     ParkingService.assertVehicleType(vehicleType);
 
-    const number = ticketNumber === null || ticketNumber === undefined
-      ? null : String(ticketNumber).trim() || null;
+    const numbers = ParkingService.#resolveNumbers({ ticketNumber, ticketNumbers, quantity });
 
-    if (number) {
-      // A ticket number is physical stock; the same one cannot be out twice.
+    // Numbers are physical stock: the same one cannot be out twice, and a batch
+    // must not repeat a number within itself either.
+    const seen = new Set();
+    for (const n of numbers) {
+      if (n === null) continue;
+      if (seen.has(n)) {
+        throw badRequest('PARKING_TICKET_NUMBER_REPEATED',
+          `Ticket number ${n} appears more than once in the same batch.`);
+      }
+      seen.add(n);
+    }
+
+    for (const n of numbers) {
+      if (n === null) continue;
+      // eslint-disable-next-line no-await-in-loop
       const clash = await this.db.prepare(`
         SELECT id FROM parking_tickets
         WHERE sales_office_id = ? AND vehicle_type = ? AND ticket_number = ? AND returned_at IS NULL`
-      ).get(registration.salesOfficeId, vehicleType, number);
+      ).get(registration.salesOfficeId, vehicleType, n);
       if (clash) {
         throw conflict('PARKING_TICKET_NUMBER_IN_USE',
-          `Ticket ${number} is already issued and has not been returned.`);
+          `Ticket ${n} is already issued and has not been returned.`);
       }
     }
 
-    const id = randomUUID();
-    await this.db.prepare(`
-      INSERT INTO parking_tickets (id, registration_id, sales_office_id, vehicle_type,
-                                   ticket_number, issued_at, issued_by, issued_by_name)
-      VALUES (?,?,?,?,?,?,?,?)`
-    ).run(id, registrationId, registration.salesOfficeId, vehicleType, number,
-      this.now(), actor.id, actor.name);
+    const issuedAt = this.now();
+    const ids = numbers.map(() => randomUUID());
 
-    return mapParkingTicket(await this.db.prepare('SELECT * FROM parking_tickets WHERE id = ?').get(id));
+    await this.db.transaction(async (tx) => {
+      const insert = tx.prepare(`
+        INSERT INTO parking_tickets (id, registration_id, sales_office_id, vehicle_type,
+                                     ticket_number, issued_at, issued_by, issued_by_name)
+        VALUES (?,?,?,?,?,?,?,?)`);
+      for (const [i, n] of numbers.entries()) {
+        // eslint-disable-next-line no-await-in-loop
+        await insert.run(ids[i], registrationId, registration.salesOfficeId, vehicleType, n,
+          issuedAt, actor.id, actor.name);
+      }
+    });
+
+    const tickets = [];
+    for (const id of ids) {
+      // eslint-disable-next-line no-await-in-loop
+      tickets.push(mapParkingTicket(
+        await this.db.prepare('SELECT * FROM parking_tickets WHERE id = ?').get(id)));
+    }
+    return tickets;
+  }
+
+  /**
+   * Work out exactly which numbers this batch writes, one entry per ticket.
+   *
+   * `null` in the returned array means "a ticket with no number recorded". The
+   * length of the array IS the number of tickets issued, so the count the desk
+   * typed and the count written can never disagree.
+   */
+  static #resolveNumbers({ ticketNumber, ticketNumbers, quantity }) {
+    const clean = (v) => (v === null || v === undefined ? null : String(v).trim() || null);
+
+    let list = null;
+    if (Array.isArray(ticketNumbers)) list = ticketNumbers.map(clean);
+    else if (ticketNumber !== null && ticketNumber !== undefined) list = [clean(ticketNumber)];
+
+    let count;
+    if (quantity === null || quantity === undefined || quantity === '') {
+      count = list ? list.length : 1;
+    } else {
+      count = Number(quantity);
+      if (!Number.isInteger(count) || count < 1) {
+        throw badRequest('INVALID_TICKET_QUANTITY',
+          'Number of tickets must be a whole number of at least 1.');
+      }
+    }
+
+    if (count > MAX_TICKETS_PER_ISSUE) {
+      throw badRequest('TOO_MANY_TICKETS',
+        `At most ${MAX_TICKETS_PER_ISSUE} tickets can be issued in one go; ${count} were asked for.`);
+    }
+
+    if (!list) return new Array(count).fill(null);
+
+    // Numbers supplied: there must be exactly one per ticket. Silently padding or
+    // truncating is what makes the entered quantity and the register disagree.
+    if (list.length !== count) {
+      throw badRequest('TICKET_NUMBER_COUNT_MISMATCH',
+        `${count} ticket(s) requested but ${list.length} ticket number(s) given.`);
+    }
+    return list;
   }
 
   /** §XXIX — take one back. */

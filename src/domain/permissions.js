@@ -10,6 +10,12 @@ const P = Object.freeze({
   REGISTRATION_SEARCH: 'registration:search',
   QR_SCAN: 'qr:scan',
   CHECKIN: 'checkin:perform',
+  /**
+   * Correct a check-in after the fact — the arrival count, the slot the group was
+   * admitted into, the agency's sales staff. Reception holds this because
+   * reception is who notices the mistake, usually minutes later.
+   */
+  CHECKIN_AMEND: 'checkin:amend',
   STATUS_UPDATE: 'status:update',
   PARKING_TICKET_UPDATE: 'parking:update',
   CALENDAR_VIEW: 'calendar:view',
@@ -42,7 +48,8 @@ const P = Object.freeze({
 
 const MATRIX = Object.freeze({
   [ROLES.RECEPTIONIST]: [
-    P.REGISTRATION_VIEW, P.REGISTRATION_SEARCH, P.REGISTRATION_EXPORT, P.QR_SCAN, P.CHECKIN,
+    P.REGISTRATION_CREATE, P.REGISTRATION_VIEW, P.REGISTRATION_SEARCH, P.REGISTRATION_EXPORT,
+    P.QR_SCAN, P.CHECKIN, P.CHECKIN_AMEND,
     P.STATUS_UPDATE, P.PARKING_TICKET_UPDATE, P.CALENDAR_VIEW, P.GUIDE_VIEW,
   ],
   [ROLES.SALES]: [

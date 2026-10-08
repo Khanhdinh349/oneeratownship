@@ -29,6 +29,7 @@ const {
 const {
   LANGUAGES, VISITOR_TYPES, ROLES, MAX_ADVANCE_DAYS, AUTO_REFRESH_MS, CHECKIN_METHODS,
   SLOT_CAPACITY, VEHICLE_TYPES, MAX_GUEST_OVERAGE, EARLY_GRACE_MINUTES, LATE_GRACE_MINUTES,
+  MAX_TICKETS_PER_ISSUE, GUEST_CATEGORIES,
 } = require('./config/master-data');
 const { MAX_VISITORS_PER_REGISTRATION } = require('./domain/validation');
 
@@ -175,6 +176,7 @@ async function createApp({
       salesOffices: await masterData.listOffices(),
       timeSlots: await masterData.listSlots(),
       agencies: await masterData.listAgencies(),
+      guestCategories: GUEST_CATEGORIES,
       statuses: ALL_STATUSES,
       rules: {
         maxAdvanceDays: MAX_ADVANCE_DAYS,
@@ -182,6 +184,7 @@ async function createApp({
         slotCapacity: SLOT_CAPACITY,
         confirmationCodeFormat: 'OE-XXXXX',
         vehicleTypes: Object.values(VEHICLE_TYPES),
+        maxTicketsPerIssue: MAX_TICKETS_PER_ISSUE,
         maxGuestOverage: MAX_GUEST_OVERAGE,
         earlyGraceMinutes: EARLY_GRACE_MINUTES,
         lateGraceMinutes: LATE_GRACE_MINUTES,
@@ -231,6 +234,7 @@ async function createApp({
         visitDate: created.visitDate,
         timeSlot: created.timeSlot,
         numberOfVisitors: created.numberOfVisitors,
+        guestCategory: created.guestCategory,
         notes: created.notes,
         displayName: created.visitorType === VISITOR_TYPES.VISITOR
           ? created.visitor.fullName
@@ -430,6 +434,30 @@ async function createApp({
     });
   }));
 
+  /**
+   * Correct a check-in that is already recorded: the arrival count, the slot the
+   * group was really admitted into, or the agency's sales staff. Reception does
+   * this, usually within minutes of noticing.
+   */
+  app.patch('/api/staff/registrations/:id/checkin', authenticate,
+    requirePermission(P.CHECKIN_AMEND), wrap(async (req, res) => {
+      const result = await checkins.amendCheckin(req.params.id, {
+        actualGuests: req.body?.actualGuests,
+        admittedSlotId: req.body?.admittedSlotId,
+        salesStaffName: req.body?.salesStaffName,
+      }, {
+        actor: { id: req.user.id, name: req.user.fullName },
+        user: req.user,
+      });
+      res.json({
+        message: result.changed ? 'Check-in updated' : 'Nothing to change',
+        changed: result.changed,
+        changes: result.changes ?? [],
+        checkin: result.checkin,
+        registration: stripSecrets(result.registration),
+      });
+    }));
+
   /** §XXIII — explicit status changes (Expected, In Visit, Completed, No Show, Cancelled). */
   app.post('/api/staff/registrations/:id/status', authenticate, requirePermission(P.STATUS_UPDATE), wrap(async (req, res) => {
     const reg = await registrations.getById(req.params.id);
@@ -460,11 +488,19 @@ async function createApp({
       const reg = await registrations.getById(req.params.id);
       if (!reg) throw notFound('REGISTRATION_NOT_FOUND', 'Registration not found.');
       registrations.assertOfficeAccess(reg, req.user);
-      const ticket = await parking.issue(req.params.id, {
+      const tickets = await parking.issue(req.params.id, {
         vehicleType: String(req.body?.vehicleType ?? '').toUpperCase(),
         ticketNumber: req.body?.ticketNumber ?? null,
+        ticketNumbers: Array.isArray(req.body?.ticketNumbers) ? req.body.ticketNumbers : null,
+        quantity: req.body?.quantity ?? null,
       }, { actor: { id: req.user.id, name: req.user.fullName } });
-      res.status(201).json({ ticket, parking: await parking.summaryFor(req.params.id) });
+      res.status(201).json({
+        // `tickets` is the whole batch; `ticket` stays for single-ticket callers.
+        tickets,
+        issued: tickets.length,
+        ticket: tickets[0],
+        parking: await parking.summaryFor(req.params.id),
+      });
     }));
 
   app.post('/api/staff/parking-tickets/:ticketId/return', authenticate,
